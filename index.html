@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>আল-বারাকাহ সহায়ক সমিতি</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="p-4 md:p-8 transition-colors duration-500">
+    <div id="appContainer">
+        <div class="container mx-auto max-w-5xl p-6 md:p-8 rounded-lg shadow-xl transition-colors duration-500">
+            <header class="mb-8 text-center no-print">
+                <div class="flex justify-between items-center mb-4">
+                    <div></div>
+                    <h1 class="text-2xl md:text-3xl font-bold bengali theme-text-h1">আল-বারাকাহ সহায়ক সমিতি</h1>
+                    <div class="theme-selector-container">
+                        <label for="themeSelector" class="sr-only bengali">থিম নির্বাচন করুন</label>
+                        <select id="themeSelector" class="text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 bengali theme-input-bg theme-input-border theme-text-input theme-dropdown">
+                            <option value="default" class="bengali">ডিফল্ট থিম</option>
+                            <option value="islamic" class="bengali">ইসলামিক থিম</option>
+                            <option value="earthy" class="bengali">আর্থি টোনস থিম</option>
+                            <option value="blues" class="bengali">শেডস অফ ব্লু থিম</option>
+                            <option value="signal" class="bengali">সিগনাল থিম</option>
+                            <option value="apple" class="bengali">অ্যাপল থিম</option>
+                            <option value="dark" class="bengali">ডার্ক মোড</option>
+                            <option value="taleem" class="bengali">তা'লীম থিম</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="text-sm bengali theme-text-subtitle">পরস্পরের সহযোগিতায়, সমিতি গড়বো ইসলামী ভাবধারায়।</p>
+            </header>
+
+            <div id="appContent">
+                <section id="firebaseConfigSection" class="mb-6 p-4 border rounded-md no-print theme-section-bg theme-border-color">
+                    <h2 class="text-lg font-semibold mb-2 bengali theme-text-h2">Firebase সেটআপ প্রয়োজন</h2>
+                    <p class="text-sm mb-3 bengali theme-text-p">
+                        এই অ্যাপ্লিকেশনটি আপনার ডেটা সংরক্ষণ করার জন্য Firebase Firestore ব্যবহার করে। অনুগ্রহ করে আপনার Firebase প্রকল্প কনফিগারেশন সরবরাহ করুন।
+                        আপনি এটি আপনার Firebase প্রকল্পের সেটিংসে খুঁজে পেতে পারেন (Project settings > General > Your apps > SDK setup and configuration)।
+                        ডেটা এই উদাহরণের জন্য একটি স্বতন্ত্র অ্যাপ আইডির অধীনে সংরক্ষণ করা হবে: <strong id="displayAppId" class="theme-text-strong"></strong>।
+                    </p>
+                    <div class="space-y-2">
+                        <label for="firebaseConfigInput" class="block text-sm font-medium bengali theme-text-label">Firebase কনফিগ পেস্ট করুন (JSON অবজেক্ট):</label>
+                        <textarea id="firebaseConfigInput" rows="8" class="w-full p-2 border rounded-md shadow-sm theme-input-bg theme-input-border theme-text-input" placeholder='{\n  "apiKey": "AIza...",\n  "authDomain": "your-project-id.firebaseapp.com",\n  "projectId": "your-project-id",\n  "storageBucket": "your-project-id.appspot.com",\n  "messagingSenderId": "1234567890",\n  "appId": "1:1234567890:web:abcdef1234567890"\n}'></textarea>
+                        <button id="saveFirebaseConfigBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-primary">Firebase সংযোগ করুন</button>
+                    </div>
+                    <p class="text-xs mt-2 bengali theme-text-muted">আপনার কনফিগ এই কম্পিউটারে সুবিধার জন্য আপনার ব্রাউজারের লোকাল স্টোরেজে সংরক্ষিত হয়। এটি এই পৃষ্ঠা দ্বারা অন্য কোথাও পাঠানো হয় না, শুধুমাত্র আপনার Firebase প্রকল্পের সাথে সংযোগ করতে ব্যবহৃত হয়।</p>
+                </section>
+
+                <section id="inputSection" class="space-y-6 no-print hidden">
+                    <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg theme-border-color">
+                        <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">সমিতির সামগ্রিক আর্থিক অবস্থা</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-sm font-medium bengali theme-text-label">মোট উত্তোলিত সঞ্চয়:</p>
+                                <p id="totalSavingsDisplay" class="text-lg font-bold bengali theme-text-success">০.০০ টাকা</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium bengali theme-text-label">মোট বিতরণকৃত ঋণ (নেট):</p>
+                                <p id="totalLoanDisplay" class="text-lg font-bold bengali theme-text-danger">০.০০ টাকা</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium bengali theme-text-label">বর্তমান তহবিল:</p>
+                                <p id="currentCashDisplay" class="text-lg font-bold bengali theme-text-info">০.০০ টাকা</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium bengali theme-text-label">বর্তমান সদস্য সংখ্যা:</p>
+                                <p id="dashboardMemberCountDisplay" class="text-lg font-bold bengali theme-text-p">০ জন</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <p class="text-sm font-medium bengali theme-text-label">আজকের তারিখ:</p>
+                                <p id="currentDateDisplay" class="text-lg font-bold bengali theme-text-p">লোড হচ্ছে...</p>
+                            </div>
+                        </div>
+                        </div>
+
+                    <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
+                        <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">অ্যাপ ইনস্ট্যান্স আইডি ব্যবস্থাপনা</h2>
+                        <p class="text-sm mb-3 bengali theme-text-p">
+                            অন্য ডিভাইস থেকে একই ডেটা অ্যাক্সেস করতে, এই অ্যাপ ইনস্ট্যান্স আইডিটি কপি করে অন্য ডিভাইসের ইনপুট ফিল্ডে পেস্ট করুন।
+                            বর্তমান অ্যাপ ইনস্ট্যান্স আইডি: <strong id="currentAppInstanceIdDisplay" class="theme-text-strong"></strong>
+                        </p>
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                            <input type="text" id="appInstanceIdInput" placeholder="এখানে অ্যাপ ইনস্ট্যান্স আইডি পেস্ট করুন" class="flex-grow rounded-md border shadow-sm p-2 bengali theme-input-bg theme-input-border theme-text-input">
+                            <button id="loadAppInstanceIdBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-primary">আইডি লোড করুন</button>
+                            <button id="copyAppInstanceIdBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral">কপি আইডি</button>
+                        </div>
+                    </div>
+
+
+                    <div class="theme-section-padding">
+                        <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">সমিতির সদস্য এডিট করুন</h2>
+                        <div class="p-3 rounded-md mb-3 theme-section-bg-alt theme-border-color">
+                            <label for="newSocietyMemberName" class="block text-sm font-medium bengali theme-text-label">সমিতির জন্য নতুন সদস্যের নাম:</label>
+                            <div class="flex space-x-2 mt-1">
+                                <input type="text" id="newSocietyMemberName" placeholder="সদস্যের নাম" maxlength="75" class="flex-grow rounded-md border shadow-sm p-2 bengali theme-input-bg theme-input-border theme-text-input">
+                                <button id="addSocietyMemberBtn" class="font-semibold py-2 px-3 rounded-md shadow bengali theme-button-secondary">সমিতির তালিকায় যুক্ত করুন</button>
+                            </div>
+                            <div id="societyMembersList" class="mt-2 text-sm theme-text-p">
+                                <h4 class="font-medium bengali theme-text-h4">বর্তমান সমিতির সদস্য: (<span id="memberCount">0</span>)</h4>
+                                <ul id="ulSocietyMembers" class="list-inside max-h-48 overflow-y-auto divide-y theme-divide-color"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="theme-section-padding">
+                        <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">রিপোর্ট তৈরি করুন</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="reportMonthSelect" class="block text-sm font-medium bengali theme-text-label">মাস:</label>
+                                <select id="reportMonthSelect" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
+                                </select>
+                            </div>
+                            <div>
+                                <label for="reportYear" class="block text-sm font-medium bengali theme-text-label">বছর (যেমন, ২০২২):</label>
+                                <input type="number" id="reportYear" value="2025" min="2000" max="2100" step="1" placeholder="YYYY"
+                                       class="mt-1 block w-full rounded-md border shadow-sm p-2 theme-input-bg theme-input-border theme-text-input"
+                                       oninput="javascript: if (this.value.length > 4) this.value = this.value.slice(0, 4);">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="theme-section-padding">
+                        <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">বর্তমান রিপোর্টে সদস্য এন্ট্রি যুক্ত করুন</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end p-3 border rounded-md theme-border-color">
+                            <div class="md:col-span-3">
+                                <label for="reportMemberNameSelect" class="block text-sm font-medium bengali theme-text-label">সদস্য নির্বাচন করুন:</label>
+                                <select id="reportMemberNameSelect" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="memberSavings" class="block text-sm font-medium bengali theme-text-label">সঞ্চয় জমা:</label>
+                                <input type="number" id="memberSavings" placeholder="0" min="0" class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="memberSavingsWithdrawal" class="block text-sm font-medium bengali theme-text-label">সঞ্চয় উত্তোলন:</label>
+                                <input type="number" id="memberSavingsWithdrawal" placeholder="0" min="0" class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input">
+                            </div>
+                            <div class="md:col-span-1">
+                                <label for="memberLoanDisbursed" class="block text-sm font-medium bengali theme-text-label">ঋণ গ্রহণ:</label>
+                                <input type="number" id="memberLoanDisbursed" placeholder="0" min="0" class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="memberLoanRepayment" class="block text-sm font-medium bengali theme-text-label">ঋণ পরিশোধ:</label>
+                                <input type="number" id="memberLoanRepayment" placeholder="0" min="0" class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input">
+                            </div>
+                            <button id="addMemberToReportBtn" class="md:col-span-2 font-semibold py-2 px-3 rounded-md shadow h-10 mt-1 md:mt-0 bengali theme-button-primary">
+                                রিপোর্টে যুক্ত করুন
+                            </button>
+                        </div>
+                        <div id="currentReportEntriesPreview" class="mt-3">
+                            <h4 class="font-medium bengali theme-text-h4">বর্তমান রিপোর্টে যুক্ত এন্ট্রি: (<span id="currentReportEntryCount">0</span>)</h4>
+                            <ul id="ulCurrentReportEntries" class="list-decimal list-inside text-sm max-h-24 overflow-y-auto theme-text-p"></ul>
+                        </div>
+                        <div class="mt-3 text-right flex justify-end space-x-2">
+                            <button id="clearCurrentReportEntriesBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-warning">বর্তমান রিপোর্ট এন্ট্রিগুলি মুছুন</button>
+                            <button id="cancelEditReportBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral hidden">বাতিল করুন</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-center">
+                        <button id="generateReportBtn" class="font-bold py-3 px-8 rounded-lg shadow-lg bengali text-lg theme-button-success-lg">রিপোর্ট তৈরি ও সংরক্ষণ করুন</button>
+                    </div>
+                </section>
+
+                <section id="reportOutputContainer" class="mt-10 hidden">
+                    <div id="reportOutput" class="p-4 rounded-md min-h-[200px] border theme-section-bg theme-border-color">
+                        <p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>
+                    </div>
+                    <div id="reportActionButtons" class="mt-4 flex flex-col sm:flex-row sm:justify-center space-y-3 sm:space-y-0 sm:space-x-3 no-print hidden">
+                        <button id="downloadPdfBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-danger">পিডিএফ ডাউনলোড করুন</button>
+                        <button id="exportCsvBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-primary">Excel ডাউনলোড করুন</button>
+                        <button id="printReportBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-neutral">রিপোর্ট প্রিন্ট করুন</button>
+                    </div>
+                </section>
+
+                <section id="additionalReportsSection" class="mt-10 space-y-6 no-print hidden">
+                     <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
+                        <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">পূর্ববর্তী মাস সমূহের রিপোর্ট</h2>
+                        <div id="previousReportsListContainer" class="p-4">
+                            <p class="bengali theme-text-muted">পূর্ববর্তী মাস সমূহের রিপোর্ট লোড হচ্ছে...</p>
+                        </div>
+                    </div>
+
+                    <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
+                        <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">বার্ষিক রিপোর্ট দেখুন</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div class="md:col-span-2">
+                                <label for="annualReportYearInput" class="block text-sm font-medium bengali theme-text-label">বছর নির্বাচন করুন (যেমন, ২০২৫):</label>
+                                <input type="number" id="annualReportYearInput" placeholder="বছর লিখুন" value="2025" min="2000" max="2100" step="1"
+                                       class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input"
+                                       oninput="javascript: if (this.value.length > 4) this.value = this.value.slice(0, 4);">
+                            </div>
+                            <div>
+                                <button id="generateAnnualReportBtn" class="w-full font-semibold py-2 px-4 rounded-md shadow h-10 bengali theme-button-accent">বার্ষিক রিপোর্ট তৈরি করুন</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div id="resetDataZoneSection" class="mt-10 pt-6 border-t-2 no-print hidden theme-danger-zone">
+                    <h2 class="text-xl font-semibold mb-3 bengali text-center theme-text-danger-heading">বিপজ্জনক এলাকা: ডেটা ব্যবস্থাপনা</h2>
+
+                    <hr class="my-4 theme-divide-color">
+
+                    <p class="text-sm text-red-600 mb-4 text-center bengali theme-text-danger-p">
+                        সাবধান: নীচের "সব ডেটা রিসেট করুন" বোতামটি ক্লিক করলে এই অ্যাপ্লিকেশনের জন্য Firebase-এ সংরক্ষিত সমস্ত সদস্য, রিপোর্ট এবং আর্থিক পরিসংখ্যান স্থায়ীভাবে মুছে যাবে। <strong class="font-semibold">এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।</strong>
+                    </p>
+                      <p class="text-sm text-center bengali theme-text-p mb-2">
+                            গুরুত্বপূর্ণ: সকল ডেটা মোছার আগে, আপনার রেকর্ডের জন্য একটি ব্যাকআপ ডাউনলোড করার পরামর্শ দেওয়া হচ্ছে।
+                        </p>
+                    <div class="flex justify-center space-x-3">
+                         <button id="exportAllDataBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-neutral">
+                            সকল ডেটা JSON হিসেবে এক্সপোর্ট করুন
+                        </button>
+                        <button id="resetAllDataBtn" class="font-bold py-2 px-6 rounded-md shadow-md bengali theme-button-danger-lg">সব ডেটা রিসেট করুন</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="messageModal" class="modal-overlay no-print">
+        <div class="modal-content theme-modal-content">
+            <h3 id="messageModalTitle" class="bengali theme-modal-title">বার্তা</h3>
+            <p id="messageModalText" class="bengali theme-modal-text"></p>
+            <button id="messageModalCloseBtn" class="modal-close-btn bengali theme-modal-button">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal-overlay no-print">
+        <div class="modal-content theme-modal-content">
+            <h3 id="confirmModalTitle" class="bengali theme-modal-title">নিশ্চিতকরণ</h3>
+            <p id="confirmModalText" class="bengali theme-modal-text"></p>
+            <div class="flex justify-end space-x-3 mt-4">
+                <button id="confirmModalCancelBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral">বাতিল করুন</button>
+                <button id="confirmModalConfirmBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-danger">নিশ্চিত করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="promptModal" class="modal-overlay no-print">
+        <div class="modal-content theme-modal-content">
+            <h3 id="promptModalTitle" class="bengali theme-modal-title">ইনপুট প্রয়োজন</h3>
+            <p id="promptModalText" class="bengali theme-modal-text mb-3"></p>
+            <input type="text" id="promptModalInput" class="w-full p-2 border rounded-md shadow-sm theme-input-bg theme-input-border theme-text-input" placeholder="এখানে টাইপ করুন...">
+            <div class="flex justify-end space-x-3 mt-4">
+                <button id="promptModalCancelBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral">বাতিল করুন</button>
+                <button id="promptModalConfirmBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-primary">জমা দিন</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingModal" class="modal-overlay no-print">
+        <div class="modal-content loading-modal-content theme-modal-content">
+            <div class="loader"></div>
+            <p class="bengali theme-modal-text">লোড হচ্ছে...</p>
+        </div>
+    </div>
+
+   <script type="module" src="js/main.js"></script>
+</body>
+</html>
