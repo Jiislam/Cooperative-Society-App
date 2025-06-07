@@ -77,20 +77,6 @@
                         </div>
                         </div>
 
-                    <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
-                        <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">অ্যাপ ইনস্ট্যান্স আইডি ব্যবস্থাপনা</h2>
-                        <p class="text-sm mb-3 bengali theme-text-p">
-                            অন্য ডিভাইস থেকে একই ডেটা অ্যাক্সেস করতে, এই অ্যাপ ইনস্ট্যান্স আইডিটি কপি করে অন্য ডিভাইসের ইনপুট ফিল্ডে পেস্ট করুন।
-                            বর্তমান অ্যাপ ইনস্ট্যান্স আইডি: <strong id="currentAppInstanceIdDisplay" class="theme-text-strong"></strong>
-                        </p>
-                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                            <input type="text" id="appInstanceIdInput" placeholder="এখানে অ্যাপ ইনস্ট্যান্স আইডি পেস্ট করুন" class="flex-grow rounded-md border shadow-sm p-2 bengali theme-input-bg theme-input-border theme-text-input">
-                            <button id="loadAppInstanceIdBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-primary">আইডি লোড করুন</button>
-                            <button id="copyAppInstanceIdBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral">কপি আইডি</button>
-                        </div>
-                    </div>
-
-
                     <div class="theme-section-padding">
                         <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">সমিতির সদস্য এডিট করুন</h2>
                         <div class="p-3 rounded-md mb-3 theme-section-bg-alt theme-border-color">
@@ -156,18 +142,21 @@
                         </div>
                         <div class="mt-3 text-right flex justify-end space-x-2">
                             <button id="clearCurrentReportEntriesBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-warning">বর্তমান রিপোর্ট এন্ট্রিগুলি মুছুন</button>
-                            <button id="cancelEditReportBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral hidden">বাতিল করুন</button>
                         </div>
                     </div>
 
-                    <div class="mt-6 flex justify-center">
+                    <div class="mt-6 flex justify-center space-x-3">
+                        <button id="cancelEditReportBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral hidden">বাতিল করুন</button>
                         <button id="generateReportBtn" class="font-bold py-3 px-8 rounded-lg shadow-lg bengali text-lg theme-button-success-lg">রিপোর্ট তৈরি ও সংরক্ষণ করুন</button>
                     </div>
                 </section>
 
                 <section id="reportOutputContainer" class="mt-10 hidden">
-                    <div id="reportOutput" class="p-4 rounded-md min-h-[200px] border theme-section-bg theme-border-color">
-                        <p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>
+                    <div class="relative p-4 rounded-md min-h-[200px] border theme-section-bg theme-border-color">
+                         <button id="closeReportViewBtn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl leading-none font-bold" title="ভিউ বন্ধ করুন">&times;</button>
+                        <div id="reportOutput">
+                            <p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>
+                        </div>
                     </div>
                     <div id="reportActionButtons" class="mt-4 flex flex-col sm:flex-row sm:justify-center space-y-3 sm:space-y-0 sm:space-x-3 no-print hidden">
                         <button id="downloadPdfBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-danger">পিডিএফ ডাউনলোড করুন</button>
@@ -177,50 +166,76 @@
                 </section>
 
                 <section id="additionalReportsSection" class="mt-10 space-y-6 no-print hidden">
-                     <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
-                        <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">পূর্ববর্তী মাস সমূহের রিপোর্ট</h2>
-                        <div id="previousReportsListContainer" class="p-4">
-                            <p class="bengali theme-text-muted">পূর্ববর্তী মাস সমূহের রিপোর্ট লোড হচ্ছে...</p>
+                    <details class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
+                        <summary class="text-xl font-semibold bengali theme-text-h2 cursor-pointer">পূর্ববর্তী মাস সমূহের রিপোর্ট</summary>
+                        <div class="mt-4">
+                            <div id="previousReportsListContainer" class="p-4">
+                                <p class="bengali theme-text-muted">পূর্ববর্তী মাস সমূহের রিপোর্ট লোড হচ্ছে...</p>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
-                    <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
-                        <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">বার্ষিক রিপোর্ট দেখুন</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                            <div class="md:col-span-2">
-                                <label for="annualReportYearSelect" class="block text-sm font-medium bengali theme-text-label">বছর নির্বাচন করুন:</label>
-                                <select id="annualReportYearSelect" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
-                                </select>
-                            </div>
-                            <div>
-                                <button id="generateAnnualReportBtn" class="w-full font-semibold py-2 px-4 rounded-md shadow h-10 bengali theme-button-accent">বার্ষিক রিপোর্ট তৈরি করুন</button>
+                    <details class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
+                        <summary class="text-xl font-semibold bengali theme-text-h2 cursor-pointer">বার্ষিক রিপোর্ট দেখুন</summary>
+                        <div class="mt-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                <div class="md:col-span-2">
+                                    <label for="annualReportYearSelect" class="block text-sm font-medium bengali theme-text-label">বছর নির্বাচন করুন:</label>
+                                    <select id="annualReportYearSelect" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
+                                    </select>
+                                </div>
+                                <div>
+                                    <button id="generateAnnualReportBtn" class="w-full font-semibold py-2 px-4 rounded-md shadow h-10 bengali theme-button-accent">বার্ষিক রিপোর্ট তৈরি করুন</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </details>
                 </section>
 
-                <div id="resetDataZoneSection" class="mt-10 pt-6 border-t-2 no-print hidden theme-danger-zone">
-                    <h2 class="text-xl font-semibold mb-3 bengali text-center theme-text-danger-heading">বিপজ্জনক এলাকা: ডেটা ব্যবস্থাপনা</h2>
+                <details class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color no-print">
+                    <summary class="text-xl font-semibold bengali theme-text-h2 cursor-pointer">অ্যাপ সেটিংস ও ডেটা ব্যবস্থাপনা</summary>
+                    <div class="mt-4 space-y-6">
+                        <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
+                            <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">অ্যাপ ইনস্ট্যান্স আইডি ব্যবস্থাপনা</h2>
+                            <p class="text-sm mb-3 bengali theme-text-p">
+                                অন্য ডিভাইস থেকে একই ডেটা অ্যাক্সেস করতে, এই অ্যাপ ইনস্ট্যান্স আইডিটি কপি করে অন্য ডিভাইসের ইনপুট ফিল্ডে পেস্ট করুন।
+                                বর্তমান অ্যাপ ইনস্ট্যান্স আইডি: <strong id="currentAppInstanceIdDisplay" class="theme-text-strong"></strong>
+                            </p>
+                            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                                <input type="text" id="appInstanceIdInput" placeholder="এখানে অ্যাপ ইনস্ট্যান্স আইডি পেস্ট করুন" class="flex-grow rounded-md border shadow-sm p-2 bengali theme-input-bg theme-input-border theme-text-input">
+                                <button id="loadAppInstanceIdBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-primary">আইডি লোড করুন</button>
+                                <button id="copyAppInstanceIdBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral">কপি আইডি</button>
+                            </div>
+                        </div>
 
-                    <hr class="my-4 theme-divide-color">
+                        <div id="resetDataZoneSection" class="mt-10 pt-6 border-t-2 no-print theme-danger-zone">
+                            <h2 class="text-xl font-semibold mb-3 bengali text-center theme-text-danger-heading">বিপজ্জনক এলাকা: ডেটা ব্যবস্থাপনা</h2>
 
-                    <p class="text-sm text-red-600 mb-4 text-center bengali theme-text-danger-p">
-                        সাবধান: নীচের "সব ডেটা রিসেট করুন" বোতামটি ক্লিক করলে এই অ্যাপ্লিকেশনের জন্য Firebase-এ সংরক্ষিত সমস্ত সদস্য, রিপোর্ট এবং আর্থিক পরিসংখ্যান স্থায়ীভাবে মুছে যাবে। <strong class="font-semibold">এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।</strong>
-                    </p>
-                      <p class="text-sm text-center bengali theme-text-p mb-2">
-                            গুরুত্বপূর্ণ: সকল ডেটা মোছার আগে, আপনার রেকর্ডের জন্য একটি ব্যাকআপ ডাউনলোড করার পরামর্শ দেওয়া হচ্ছে।
-                        </p>
-                    <div class="flex justify-center space-x-3">
-                         <button id="exportAllDataBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-neutral">
-                            সকল ডেটা JSON হিসেবে এক্সপোর্ট করুন
-                        </button>
-                        <button id="resetAllDataBtn" class="font-bold py-2 px-6 rounded-md shadow-md bengali theme-button-danger-lg">সব ডেটা রিসেট করুন</button>
+                            <hr class="my-4 theme-divide-color">
+
+                            <p class="text-sm text-red-600 mb-4 text-center bengali theme-text-danger-p">
+                                সাবধান: নীচের "সব ডেটা রিসেট করুন" বোতামটি ক্লিক করলে এই অ্যাপ্লিকেশনের জন্য Firebase-এ সংরক্ষিত সমস্ত সদস্য, রিপোর্ট এবং আর্থিক পরিসংখ্যান স্থায়ীভাবে মুছে যাবে। <strong class="font-semibold">এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।</strong>
+                            </p>
+                            <p class="text-sm text-center bengali theme-text-p mb-2">
+                                গুরুত্বপূর্ণ: সকল ডেটা মোছার আগে, আপনার রেকর্ডের জন্য একটি ব্যাকআপ ডাউনলোড করার পরামর্শ দেওয়া হচ্ছে।
+                            </p>
+                            <div class="flex justify-center space-x-3">
+                                <button id="exportAllDataBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-neutral">
+                                    সকল ডেটা JSON হিসেবে এক্সপোর্ট করুন
+                                </button>
+                                <button id="resetAllDataBtn" class="font-bold py-2 px-6 rounded-md shadow-md bengali theme-button-danger-lg">সব ডেটা রিসেট করুন</button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </details>
 
             </div>
         </div>
     </div>
+
+    <button id="scrollToTopBtn" class="fixed bottom-4 right-4 bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition-opacity duration-300 opacity-0 invisible no-print z-50">
+        ↑
+    </button>
 
     <div id="messageModal" class="modal-overlay no-print">
         <div class="modal-content theme-modal-content">

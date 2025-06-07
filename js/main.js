@@ -96,7 +96,7 @@ const copyAppInstanceIdBtn = document.getElementById('copyAppInstanceIdBtn'); //
 
 
 const reportMonthSelect = document.getElementById('reportMonthSelect');
-const reportYearSelect = document.getElementById('reportYearSelect'); // New: Updated ID for select element
+const reportYearSelect = document.getElementById('reportYearSelect'); // Updated ID for select element
 
 const newSocietyMemberNameInput = document.getElementById('newSocietyMemberName');
 const addSocietyMemberBtn = document.getElementById('addSocietyMemberBtn');
@@ -116,12 +116,17 @@ const printReportBtn = document.getElementById('printReportBtn');
 const clearCurrentReportEntriesBtn = document.getElementById('clearCurrentReportEntriesBtn');
 const cancelEditReportBtn = document.getElementById('cancelEditReportBtn');
 
+// New UI Elements for Close button and Scroll-to-Top
+const closeReportViewBtn = document.getElementById('closeReportViewBtn'); // New: Close button for report view
+const scrollToTopBtn = document.getElementById('scrollToTopBtn'); // New: Scroll to top button
+
 
 const previousReportsListContainer = document.getElementById('previousReportsListContainer');
 
 const reportOutputDiv = document.getElementById('reportOutput');
+const reportOutputContainer = document.getElementById('reportOutputContainer'); // Get report output container
 
-const annualReportYearSelect = document.getElementById('annualReportYearSelect'); // New: Updated ID for select element
+const annualReportYearSelect = document.getElementById('annualReportYearSelect'); // Updated ID for select element
 const generateAnnualReportBtn = document.getElementById('generateAnnualReportBtn');
 
 const resetAllDataBtn = document.getElementById('resetAllDataBtn');
@@ -224,6 +229,38 @@ window.addEventListener('load', async () => {
         });
     }
     showLoadingUI(false);
+
+    // Initial check for scroll to top button visibility
+    if (window.scrollY > 200) { // Show if scrolled more than 200px
+        scrollToTopBtn.classList.add('opacity-100', 'visible');
+    } else {
+        scrollToTopBtn.classList.remove('opacity-100', 'visible');
+    }
+
+    // Scroll-to-top button visibility logic
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 200) {
+            if (scrollToTopBtn.classList.contains('invisible')) {
+                scrollToTopBtn.classList.remove('invisible', 'opacity-0');
+                scrollToTopBtn.classList.add('opacity-100', 'visible');
+            }
+        } else {
+            if (scrollToTopBtn.classList.contains('visible')) {
+                scrollToTopBtn.classList.remove('opacity-100', 'visible');
+                scrollToTopBtn.classList.add('opacity-0', 'invisible');
+            }
+        }
+    });
+
+    // Scroll-to-top button click handler
+    if (scrollToTopBtn) {
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
 });
 
 if (saveFirebaseConfigBtn) {
@@ -692,8 +729,8 @@ async function handleGenerateReport() {
                 reportMonthString,
                 reportYearString,
                 cumulativeTotals,
-                reportDataToDisplay.monthlyTotals.savingsDeposit, // Corrected access
-                reportDataToDisplay.monthlyTotals.savingsWithdrawal, // Corrected access
+                reportDataToDisplay.monthlyTotals.savingsDeposit,
+                reportDataToDisplay.monthlyTotals.savingsWithdrawal,
                 createdAtJSDate,
                 updatedAtJSDate,
                 societyMembers // Pass societyMembers to renderReportToHtmlUI
@@ -723,6 +760,10 @@ async function handleGenerateReport() {
 
             if (editingReportId) {
                 resetEditMode();
+            }
+            // Scroll to report output after generation/update
+            if (reportOutputContainer) {
+                reportOutputContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
 
         } else {
@@ -793,8 +834,8 @@ async function handleLoadPreviousReportFromList(reportId) {
                 reportMonthStr,
                 reportYearStr,
                 cumulativeTotals,
-                reportData.monthlyTotals.savingsDeposit, // Corrected access
-                reportData.monthlyTotals.savingsWithdrawal, // Corrected access
+                monthlySavingsDeposit,
+                monthlySavingsWithdrawal,
                 createdAtJSDate,
                 updatedAtJSDate,
                 societyMembers // Pass societyMembers to renderReportToHtmlUI
@@ -905,7 +946,7 @@ async function handleInitiateEditReport(reportId, month, year) {
             toggleReportActionButtonsUI(false);
 
         } else {
-            throw result.error || new Error("সম্পাদনার জন্য রিপোর্ট লোড করতে ডেটা পাওয়া যায়নি।");
+            throw result.error || new Error("সম্পাদনার জন্য রিপোর্ট লোড করা যায়নি।");
         }
     } catch (error) {
         console.error("Error initiating report edit:", error);
@@ -1137,3 +1178,15 @@ if (exportCsvBtn) {
 if (printReportBtn) printReportBtn.addEventListener('click', handlePrintReport);
 if (resetAllDataBtn) resetAllDataBtn.addEventListener('click', handleResetAllApplicationData);
 if (exportAllDataBtn) exportAllDataBtn.addEventListener('click', handleExportAllData);
+
+// New Event Listener for Close Report View Button
+if (closeReportViewBtn) {
+    closeReportViewBtn.addEventListener('click', () => {
+        setReportOutputHTML(`<p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>`);
+        toggleReportActionButtonsUI(false);
+        lastRenderedReportData = { type: null, data: null, titleInfo: {} }; // Clear last rendered report data
+        if (reportOutputContainer) {
+            reportOutputContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+}
