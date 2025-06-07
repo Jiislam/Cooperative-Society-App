@@ -632,6 +632,22 @@ async function handleGenerateReport() {
 
         let result;
         if (editingReportId) {
+            // Added check for entries being zero in edit mode
+            if (currentReportEntries.length === 0) {
+                const confirmed = await showConfirmModalUI(
+                    "এন্ট্রিবিহীন রিপোর্ট",
+                    "আপনি কি নিশ্চিত যে আপনি এই রিপোর্টটি কোনো এন্ট্রি ছাড়াই সংরক্ষণ করতে চান? এটি একটি খালি রিপোর্ট হিসেবে সংরক্ষণ হবে।",
+                    "হ্যাঁ, সংরক্ষণ করুন",
+                    "বাতিল করুন"
+                );
+                if (!confirmed) {
+                    showMessageUI("রিপোর্ট সংরক্ষণ বাতিল করা হয়েছে।", "info");
+                    showLoadingUI(false);
+                    generateReportBtn.disabled = false;
+                    return; // Stop execution if not confirmed
+                }
+            }
+
             if (!editingReportOriginalTotals) {
                 showMessageUI("সম্পাদনার জন্য মূল রিপোর্টের ডেটা অনুপস্থিত। অনুগ্রহ করে আবার চেষ্টা করুন।", "error", 0);
                 resetEditMode();
@@ -676,8 +692,8 @@ async function handleGenerateReport() {
                 reportMonthString,
                 reportYearString,
                 cumulativeTotals,
-                monthlyTotalSavingsDeposit,
-                monthlyTotalSavingsWithdrawal,
+                reportDataToDisplay.monthlyTotals.savingsDeposit, // Corrected access
+                reportDataToDisplay.monthlyTotals.savingsWithdrawal, // Corrected access
                 createdAtJSDate,
                 updatedAtJSDate,
                 societyMembers // Pass societyMembers to renderReportToHtmlUI
@@ -777,8 +793,8 @@ async function handleLoadPreviousReportFromList(reportId) {
                 reportMonthStr,
                 reportYearStr,
                 cumulativeTotals,
-                monthlySavingsDeposit,
-                monthlySavingsWithdrawal,
+                reportData.monthlyTotals.savingsDeposit, // Corrected access
+                reportData.monthlyTotals.savingsWithdrawal, // Corrected access
                 createdAtJSDate,
                 updatedAtJSDate,
                 societyMembers // Pass societyMembers to renderReportToHtmlUI
