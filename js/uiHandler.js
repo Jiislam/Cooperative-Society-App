@@ -30,6 +30,9 @@ const ulSocietyMembers = document.getElementById('ulSocietyMembers');
 const memberCountSpan = document.getElementById('memberCount');
 const reportMemberNameSelect = document.getElementById('reportMemberNameSelect');
 const reportMonthSelectUI = document.getElementById('reportMonthSelect');
+const reportYearSelectUI = document.getElementById('reportYearSelect'); // New: Added for report year dropdown
+const annualReportYearSelectUI = document.getElementById('annualReportYearSelect'); // New: Added for annual report year dropdown
+
 
 const ulCurrentReportEntries = document.getElementById('ulCurrentReportEntries');
 const currentReportEntryCountSpan = document.getElementById('currentReportEntryCount');
@@ -392,6 +395,31 @@ export function populateMonthDropdownUI() {
     }
 }
 
+/**
+ * Populates a year dropdown (select element) with a range of years.
+ * @param {HTMLSelectElement} selectElement - The select element to populate.
+ * @param {number} startYear - The earliest year to include.
+ * @param {number} endYear - The latest year to include.
+ * @param {number} [currentYear] - The year to set as default selected. Defaults to current actual year.
+ */
+export function populateYearDropdownUI(selectElement, startYear, endYear, currentYear = new Date().getFullYear()) {
+    if (!selectElement) return;
+    selectElement.innerHTML = ''; // Clear existing options
+
+    // Ensure years are in descending order as typically desired for reports
+    for (let year = endYear; year >= startYear; year--) {
+        const option = document.createElement('option');
+        option.value = String(year);
+        option.textContent = String(year);
+        option.className = "bengali";
+        if (year === currentYear) {
+            option.selected = true;
+        }
+        selectElement.appendChild(option);
+    }
+}
+
+
 export function renderCurrentReportEntriesPreviewUI(currentReportEntriesArray, handleDeleteSingleEntryCallback) {
     if (!ulCurrentReportEntries || !currentReportEntryCountSpan) return;
     ulCurrentReportEntries.innerHTML = '';
@@ -482,7 +510,7 @@ export function renderReportToHtmlUI(
 
     const associationName = (typeof assocNameParam === 'string' && assocNameParam.trim() !== '') ? assocNameParam : "আল-বারাকাহ সহায়ক সমিতি";
     const reportMonth = (typeof rptMonthParam === 'string' && rptMonthParam.trim() !== '') ? rptMonthParam : (document.getElementById('reportMonthSelect')?.value || "মাস");
-    const reportYear = (typeof rptYearParam === 'string' || typeof rptYearParam === 'number') && String(rptYearParam).trim() !== '' ? String(rptYearParam) : (document.getElementById('reportYear')?.value || "বছর");
+    const reportYear = (typeof rptYearParam === 'string' || typeof rptYearParam === 'number') && String(rptYearParam).trim() !== '' ? String(rptYearParam) : (document.getElementById('reportYearSelect')?.value || "বছর"); // Updated ID here
 
     html += `<h2 class="text-xl md:text-2xl font-bold text-center mb-1 bengali theme-text-h1">${associationName} : মাস ${reportMonth} (${reportYear})</h2>`;
 
@@ -510,7 +538,7 @@ export function renderReportToHtmlUI(
     html += '<table class="min-w-full table-bordered bg-white text-sm shadow-md">';
     html += `<thead class="bg-gray-100 theme-section-bg"><tr>
                 <th class="px-3 py-2 text-left text-xs font-medium theme-text-label uppercase tracking-wider bengali">ক্রমিক নং</th>
-                <th class="px-3 py-2 text-left text-xs font-medium theme-text-label uppercase tracking-wider bengwer bengali">সদস্যের নাম</th>
+                <th class="px-3 py-2 text-left text-xs font-medium theme-text-label uppercase tracking-wider bengali">সদস্যের নাম</th>
                 <th class="px-3 py-2 text-right text-xs font-medium theme-text-label uppercase tracking-wider bengali">সঞ্চয় জমা (টাকা)</th>
                 <th class="px-3 py-2 text-right text-xs font-medium theme-text-label uppercase tracking-wider bengali">সঞ্চয় উত্তোলন (টাকা)</th>
                 <th class="px-3 py-2 text-right text-xs font-medium theme-text-label uppercase tracking-wider bengali">ঋণ বিতরণ (টাকা)</th>

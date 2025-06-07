@@ -115,10 +115,9 @@
                                 </select>
                             </div>
                             <div>
-                                <label for="reportYear" class="block text-sm font-medium bengali theme-text-label">বছর (যেমন, ২০২২):</label>
-                                <input type="number" id="reportYear" value="2025" min="2000" max="2100" step="1" placeholder="YYYY"
-                                       class="mt-1 block w-full rounded-md border shadow-sm p-2 theme-input-bg theme-input-border theme-text-input"
-                                       oninput="javascript: if (this.value.length > 4) this.value = this.value.slice(0, 4);">
+                                <label for="reportYearSelect" class="block text-sm font-medium bengali theme-text-label">বছর:</label>
+                                <select id="reportYearSelect" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -189,10 +188,9 @@
                         <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">বার্ষিক রিপোর্ট দেখুন</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                             <div class="md:col-span-2">
-                                <label for="annualReportYearInput" class="block text-sm font-medium bengali theme-text-label">বছর নির্বাচন করুন (যেমন, ২০২৫):</label>
-                                <input type="number" id="annualReportYearInput" placeholder="বছর লিখুন" value="2025" min="2000" max="2100" step="1"
-                                       class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input"
-                                       oninput="javascript: if (this.value.length > 4) this.value = this.value.slice(0, 4);">
+                                <label for="annualReportYearSelect" class="block text-sm font-medium bengali theme-text-label">বছর নির্বাচন করুন:</label>
+                                <select id="annualReportYearSelect" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
+                                </select>
                             </div>
                             <div>
                                 <button id="generateAnnualReportBtn" class="w-full font-semibold py-2 px-4 rounded-md shadow h-10 bengali theme-button-accent">বার্ষিক রিপোর্ট তৈরি করুন</button>

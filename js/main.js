@@ -12,6 +12,7 @@ import {
     renderSocietyMembersListUI,
     populateReportEntryMemberDropdownUI,
     populateMonthDropdownUI,
+    populateYearDropdownUI, // New: Import populateYearDropdownUI
     renderCurrentReportEntriesPreviewUI,
     updateOverallFinancialStatusDisplayUI,
     updateCurrentDateDisplayUI,
@@ -95,7 +96,7 @@ const copyAppInstanceIdBtn = document.getElementById('copyAppInstanceIdBtn'); //
 
 
 const reportMonthSelect = document.getElementById('reportMonthSelect');
-const reportYearInput = document.getElementById('reportYear');
+const reportYearSelect = document.getElementById('reportYearSelect'); // New: Updated ID for select element
 
 const newSocietyMemberNameInput = document.getElementById('newSocietyMemberName');
 const addSocietyMemberBtn = document.getElementById('addSocietyMemberBtn');
@@ -120,7 +121,7 @@ const previousReportsListContainer = document.getElementById('previousReportsLis
 
 const reportOutputDiv = document.getElementById('reportOutput');
 
-const annualReportYearInput = document.getElementById('annualReportYearInput');
+const annualReportYearSelect = document.getElementById('annualReportYearSelect'); // New: Updated ID for select element
 const generateAnnualReportBtn = document.getElementById('generateAnnualReportBtn');
 
 const resetAllDataBtn = document.getElementById('resetAllDataBtn');
@@ -143,7 +144,7 @@ function resetEditMode() {
         generateReportBtn.classList.add('theme-button-success-lg');
     }
     if (reportMonthSelect) reportMonthSelect.disabled = false;
-    if (reportYearInput) reportYearInput.disabled = false;
+    if (reportYearSelect) reportYearSelect.disabled = false; // Updated ID here
     if (cancelEditReportBtn) cancelEditReportBtn.classList.add('hidden'); // Hide cancel button
     currentReportEntries = []; // Clear entries on cancel
     renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
@@ -159,6 +160,10 @@ async function handleFirebaseInitialization(config) {
         showMessageUI("ফায়ারবেস সফলভাবে সংযুক্ত হয়েছে!", "success");
         showFirebaseConfigSectionUI(false);
         populateMonthDropdownUI();
+        // Populate year dropdowns on initialization
+        const currentYear = new Date().getFullYear();
+        populateYearDropdownUI(reportYearSelect, currentYear - 10, currentYear + 5, currentYear); // For monthly report
+        populateYearDropdownUI(annualReportYearSelect, currentYear - 10, currentYear + 5, currentYear); // For annual report
         updateCurrentDateDisplayUI();
         await loadInitialData();
     } else {
@@ -186,11 +191,19 @@ window.addEventListener('load', async () => {
             localStorage.removeItem(`firebaseConfig_${appInstanceId}`);
             showFirebaseConfigSectionUI(true);
             populateMonthDropdownUI();
+            // Also populate year dropdowns even if Firebase fails, so UI is consistent
+            const currentYear = new Date().getFullYear();
+            populateYearDropdownUI(reportYearSelect, currentYear - 10, currentYear + 5, currentYear);
+            populateYearDropdownUI(annualReportYearSelect, currentYear - 10, currentYear + 5, currentYear);
         }
     } else {
         console.log("No Firebase config found. Please enter manually.");
         showFirebaseConfigSectionUI(true);
         populateMonthDropdownUI();
+        // Populate year dropdowns if no config found
+        const currentYear = new Date().getFullYear();
+        populateYearDropdownUI(reportYearSelect, currentYear - 10, currentYear + 5, currentYear);
+        populateYearDropdownUI(annualReportYearSelect, currentYear - 10, currentYear + 5, currentYear);
     }
 
     const savedTheme = localStorage.getItem('selectedTheme');
@@ -466,7 +479,8 @@ async function handleAddMemberToReport() {
 
     // --- Chronological Validation for Withdrawals and Loan Repayments ---
     const reportMonthString = reportMonthSelect.value;
-    const reportYearNumber = parseInt(reportYearInput.value);
+    const reportYearString = reportYearSelect.value; // Updated ID here
+    const reportYearNumber = parseInt(reportYearString);
     const reportMonthIndex = banglaMonthsForUI.indexOf(reportMonthString);
 
     if (isNaN(reportYearNumber) || reportMonthIndex === -1) {
@@ -602,7 +616,7 @@ async function handleGenerateReport() {
         showMessageUI("রিপোর্ট তৈরি/আপডেট করতে অনুগ্রহ করে কমপক্ষে একটি সদস্য এন্ট্রি যুক্ত করুন।", "error", 0);
         return;
     }
-    if (!reportMonthSelect || !reportYearInput || !generateReportBtn) {
+    if (!reportMonthSelect || !reportYearSelect || !generateReportBtn) { // Updated ID here
         console.error("Required UI elements for report generation are missing.");
         showMessageUI("রিপোর্ট তৈরির জন্য প্রয়োজনীয় UI উপাদান পাওয়া যায়নি।", "error", 0);
         return;
@@ -614,7 +628,7 @@ async function handleGenerateReport() {
     try {
         const associationNameString = SOCIETY_NAME;
         const reportMonthString = reportMonthSelect.value;
-        const reportYearString = String(parseInt(reportYearInput.value) || new Date().getFullYear());
+        const reportYearString = reportYearSelect.value; // Updated ID here
 
         let result;
         if (editingReportId) {
@@ -662,8 +676,8 @@ async function handleGenerateReport() {
                 reportMonthString,
                 reportYearString,
                 cumulativeTotals,
-                reportDataToDisplay.monthlyTotals.savingsDeposit,
-                reportDataToDisplay.monthlyTotals.savingsWithdrawal,
+                monthlyTotalSavingsDeposit,
+                monthlyTotalSavingsWithdrawal,
                 createdAtJSDate,
                 updatedAtJSDate,
                 societyMembers // Pass societyMembers to renderReportToHtmlUI
@@ -840,7 +854,7 @@ async function handleInitiateEditReport(reportId, month, year) {
             });
 
             if (reportMonthSelect) reportMonthSelect.value = reportToEdit.month;
-            if (reportYearInput) reportYearInput.value = reportToEdit.year;
+            if (reportYearSelect) reportYearSelect.value = String(reportToEdit.year); // Updated ID here, ensure string value for select
 
             renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
             updateReportMemberDropdown();
@@ -853,7 +867,7 @@ async function handleInitiateEditReport(reportId, month, year) {
             }
 
             if(reportMonthSelect) reportMonthSelect.disabled = true;
-            if(reportYearInput) reportYearInput.disabled = true;
+            if(reportYearSelect) reportYearSelect.disabled = true; // Updated ID here
             if(cancelEditReportBtn) cancelEditReportBtn.classList.remove('hidden'); // Show cancel button
 
             showMessageUI(`"${reportToEdit.month} ${reportToEdit.year}" মাসের রিপোর্ট এখন সম্পাদনা করছেন।`, "info");
@@ -927,11 +941,11 @@ async function handleInitiateDeleteReport(reportId, month, year) {
 
 
 async function handleGenerateAnnualReport() {
-    if (!annualReportYearInput || !annualReportYearYearInput.value) {
+    if (!annualReportYearSelect || !annualReportYearSelect.value) { // Updated ID here
         showMessageUI("অনুগ্রহ করে বার্ষিক রিপোর্টের জন্য বছর নির্বাচন করুন।", "error", 0);
         return;
     }
-    const yearNum = parseInt(annualReportYearInput.value);
+    const yearNum = parseInt(annualReportYearSelect.value); // Updated ID here
     if (isNaN(yearNum) || String(yearNum).length !== 4) {
         showMessageUI("অনুগ্রহ করে একটি সঠিক ৪-সংখ্যার বছর লিখুন।", "error", 0);
         return;
