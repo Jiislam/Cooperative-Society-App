@@ -154,6 +154,10 @@ function resetEditMode() {
     currentReportEntries = []; // Clear entries on cancel
     renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
     updateReportMemberDropdown();
+    // After resetting edit mode, ensure report view is cleared and action buttons are hidden
+    setReportOutputHTML(`<p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>`);
+    toggleReportActionButtonsUI(false);
+    lastRenderedReportData = { type: null, data: null, titleInfo: {} };
 }
 
 
@@ -529,10 +533,10 @@ async function handleAddMemberToReport() {
     const reportDate = new Date(reportYearNumber, reportMonthIndex, 1);
 
     if (savingsWithdrawal > 0) {
-        showLoadingUI(true);
+        showLoadingUI(true); // Show loading BEFORE the async call
         // Get net savings as of the report date
         const memberNetSavingsAsOfReportDate = await getMemberNetSavingsAsOfDate(appInstanceId, memberId, reportDate);
-        showLoadingUI(false);
+        showLoadingUI(false); // Hide loading AFTER the async call
 
         if (memberNetSavingsAsOfReportDate === null) {
             showMessageUI("সদস্যের সঞ্চয় হিসাব করতে ত্রুটি হয়েছে।", "error", 0);
@@ -547,10 +551,10 @@ async function handleAddMemberToReport() {
     }
 
     if (loanRepayment > 0) {
-        showLoadingUI(true);
+        showLoadingUI(true); // Show loading BEFORE the async call
         // Get outstanding loan as of the report date
         const memberOutstandingLoanAsOfReportDate = await getMemberNetLoanAsOfDate(appInstanceId, memberId, reportDate);
-        showLoadingUI(false);
+        showLoadingUI(false); // Hide loading AFTER the async call
 
         if (memberOutstandingLoanAsOfReportDate === null) {
             showMessageUI("সদস্যের ঋণ হিসাব করতে ত্রুটি হয়েছে।", "error", 0);
@@ -639,7 +643,7 @@ async function handleClearCurrentReportEntries() {
             updateReportMemberDropdown();
             showMessageUI("বর্তমান রিপোর্ট এন্ট্রিগুলি মুছে ফেলা হয়েছে।", "info");
             toggleReportActionButtonsUI(false);
-            resetEditMode();
+            resetEditMode(); // Ensure edit mode is reset if all entries are cleared
         } else {
             showMessageUI("এন্ট্রি মোছা বাতিল করা হয়েছে।", "info");
         }
@@ -659,8 +663,9 @@ async function handleGenerateReport() {
         return;
     }
 
-    showLoadingUI(true);
+    // Temporarily disable button and show loading spinner ONLY AFTER potential prompts/confirms
     generateReportBtn.disabled = true;
+    showLoadingUI(true);
 
     try {
         const associationNameString = SOCIETY_NAME;
@@ -671,30 +676,33 @@ async function handleGenerateReport() {
         if (editingReportId) {
             // Added check for entries being zero in edit mode
             if (currentReportEntries.length === 0) {
+                // Hide loading spinner temporarily to show the prompt
+                showLoadingUI(false);
                 const confirmed = await showConfirmModalUI(
                     "এন্ট্রিবিহীন রিপোর্ট",
                     "আপনি কি নিশ্চিত যে আপনি এই রিপোর্টটি কোনো এন্ট্রি ছাড়াই সংরক্ষণ করতে চান? এটি একটি খালি রিপোর্ট হিসেবে সংরক্ষণ হবে।",
                     "হ্যাঁ, সংরক্ষণ করুন",
                     "বাতিল করুন"
                 );
-                if (!confirmed) {
+                // Re-show loading spinner if user confirms and operation continues
+                if (confirmed) {
+                    showLoadingUI(true);
+                } else {
                     showMessageUI("রিপোর্ট সংরক্ষণ বাতিল করা হয়েছে।", "info");
-                    showLoadingUI(false);
+                    showLoadingUI(false); // Ensure loading is off
                     generateReportBtn.disabled = false;
                     return; // Stop execution if not confirmed
                 }
             }
 
-            if (!editingReportOriginalTotals) {
-                showMessageUI("সম্পাদনার জন্য মূল রিপোর্টের ডেটা অনুপস্থিত। অনুগ্রহ করে আবার চেষ্টা করুন।", "error", 0);
-                resetEditMode();
-                throw new Error("Original report totals missing for update.");
-            }
+            // originalReportTotals is now pulled directly inside updateMonthlyReportAndRecalculate
+            // This parameter will be ignored by the service now.
+            // For clarity, ensure service function handles it gracefully.
             result = await updateMonthlyReportAndRecalculate(
                 appInstanceId,
                 editingReportId,
                 currentReportEntries,
-                editingReportOriginalTotals
+                editingReportOriginalTotals // This will be used by the service to get original data
             );
         } else {
             result = await createNewMonthlyReport(
@@ -715,8 +723,9 @@ async function handleGenerateReport() {
 
             const reportDataToDisplay = editingReportId ? result.updatedReportData : result.savedReportData;
 
-            const createdAtJSDate = reportDataToDisplay.createdAt?.toDate ? reportDataToDisplay.createdAt.toDate() : (reportDataToDisplay.createdAt instanceof Date ? reportDataToDisplay.createdAt : new Date());
-            const updatedAtJSDate = reportDataToDisplay.updatedAt?.toDate ? reportDataToDisplay.updatedAt.toDate() : (reportDataToDisplay.updatedAt instanceof Date ? reportDataToDisplay.updatedAt : null);
+            // Ensure these are Date objects before passing to renderReportToHtmlUI
+            const createdAtJSDate = reportDataToDisplay.createdAt instanceof Date ? reportDataToDisplay.createdAt : (reportDataToDisplay.createdAt?.toDate ? reportDataToDisplay.createdAt.toDate() : null);
+            const updatedAtJSDate = reportDataToDisplay.updatedAt instanceof Date ? reportDataToDisplay.updatedAt : (reportDataToDisplay.updatedAt?.toDate ? reportDataToDisplay.updatedAt.toDate() : null);
 
 
             renderReportToHtmlUI(
@@ -739,8 +748,8 @@ async function handleGenerateReport() {
                 type: 'monthly',
                 data: {
                     ...reportDataToDisplay,
-                    createdAt: createdAtJSDate,
-                    updatedAt: updatedAtJSDate
+                    createdAt: createdAtJSDate, // Ensure Date object is stored
+                    updatedAt: updatedAtJSDate // Ensure Date object is stored
                 },
                 titleInfo: {
                     associationName: associationNameString,
@@ -774,6 +783,7 @@ async function handleGenerateReport() {
                 showMessageUI(`রিপোর্ট ${actionVerb} করতে ব্যর্থ: ${result.error.message || 'অজানা ত্রুটি।'}`, "error", 0);
             }
             console.error("Error generating/updating report via service:", result.error);
+            // Ensure UI is reset even on failure
             if (!editingReportId) {
                 toggleReportActionButtonsUI(lastRenderedReportData.type !== null);
             } else {
@@ -788,8 +798,8 @@ async function handleGenerateReport() {
             resetEditMode();
         }
     } finally {
-        showLoadingUI(false);
-        if (generateReportBtn) generateReportBtn.disabled = false;
+        showLoadingUI(false); // Always hide loading spinner
+        if (generateReportBtn) generateReportBtn.disabled = false; // Always re-enable button
     }
 }
 
@@ -821,8 +831,9 @@ async function handleLoadPreviousReportFromList(reportId) {
             const monthlyLoanDisbursed = reportData.monthlyTotals?.loanDisbursed || 0;
             const monthlyLoanRepaid = reportData.monthlyTotals?.loanRepaid || 0;
 
-            const createdAtJSDate = reportData.createdAt?.toDate ? reportData.createdAt.toDate() : null;
-            const updatedAtJSDate = reportData.updatedAt?.toDate ? reportData.updatedAt.toDate() : null;
+            // Ensure these are Date objects before passing to renderReportToHtmlUI
+            const createdAtJSDate = reportData.createdAt instanceof Date ? reportData.createdAt : (reportData.createdAt?.toDate ? reportData.createdAt.toDate() : null);
+            const updatedAtJSDate = reportData.updatedAt instanceof Date ? reportData.updatedAt : (reportData.updatedAt?.toDate ? reportData.updatedAt.toDate() : null);
 
             renderReportToHtmlUI(
                 reportData.entries,
@@ -844,8 +855,8 @@ async function handleLoadPreviousReportFromList(reportId) {
                 type: 'monthly',
                 data: {
                     ...reportData,
-                    createdAt: createdAtJSDate,
-                    updatedAt: updatedAtJSDate
+                    createdAt: createdAtJSDate, // Ensure Date object is stored
+                    updatedAt: updatedAtJSDate // Ensure Date object is stored
                 },
                 titleInfo: {
                     associationName: associationNameStr,
@@ -946,7 +957,7 @@ async function handleInitiateEditReport(reportId, month, year) {
             toggleReportActionButtonsUI(false);
 
         } else {
-            throw result.error || new Error("সম্পাদনার জন্য রিপোর্ট লোড করা যায়নি।");
+            throw result.error || new Error("সম্পাদনার জন্য মূল রিপোর্ট লোড করা যায়নি।");
         }
     } catch (error) {
         console.error("Error initiating report edit:", error);

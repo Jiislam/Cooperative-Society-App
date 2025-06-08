@@ -16,7 +16,7 @@ body {
 }
 .table-bordered th,
 .table-bordered td {
-    border: 1px solid var(--theme-border-color, #e2e8f0); 
+    border: 1px solid var(--theme-border-color, #e2e8f0);
     padding: 8px;
     text-align: left;
 }
@@ -25,8 +25,8 @@ body {
     border-collapse: collapse;
 }
 .loader {
-    border: 5px solid #f3f3f3; 
-    border-top: 5px solid var(--theme-loader-top, #3498db); 
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--theme-loader-top, #3498db);
     border-radius: 50%;
     width: 50px;
     height: 50px;
@@ -49,7 +49,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 1000; /* Base z-index for all modals */
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0s linear 0.3s;
@@ -60,7 +60,7 @@ body {
     transition: opacity 0.3s ease;
 }
 .modal-content {
-    background-color: var(--theme-modal-content-bg, white); 
+    background-color: var(--theme-modal-content-bg, white);
     padding: 25px;
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -73,18 +73,18 @@ body {
 .modal-overlay.active .modal-content {
     transform: scale(1);
 }
-.modal-content h3 { 
+.modal-content h3 {
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 1.25rem;
     font-weight: 600;
 }
-.modal-content p { 
+.modal-content p {
     margin-bottom: 20px;
     font-size: 1rem;
     line-height: 1.6;
 }
-.modal-close-btn { 
+.modal-close-btn {
     border: none;
     padding: 10px 20px;
     border-radius: 6px;
@@ -105,7 +105,7 @@ body {
 .loading-modal-content .loader {
     margin-bottom: 20px;
 }
-.loading-modal-content p { 
+.loading-modal-content p {
     font-size: 1.1rem;
     font-weight: 500;
 }
@@ -115,59 +115,74 @@ body.loading-active #appContainer {
     transition: filter 0.3s ease-out;
 }
 
+/* Specific z-index for modals to ensure correct stacking order */
+#loadingModal {
+    z-index: 1010; /* Lower than interactive modals */
+}
+#messageModal {
+    z-index: 1020;
+}
+#confirmModal {
+    z-index: 1030; /* Higher than loading, lower than prompt */
+}
+#promptModal {
+    z-index: 1040; /* Highest z-index for interactive prompts */
+}
+
+
 /* --- Theme Variables (CSS Custom Properties) - DEFAULT THEME --- */
 :root {
-    --theme-bg-page: #f8f9fa; 
-    --theme-bg-container: #ffffff; 
-    --theme-bg-section: #eef1f5; 
-    --theme-bg-section-alt: #f8f9fa; 
-    --theme-bg-input: #ffffff; 
-    --theme-border-color: #d1d9e0; 
-    --theme-divide-color: #e0e6ed; 
-    --theme-text-h1: #2a3b4d; 
-    --theme-text-h2: #3b4a5c; 
-    --theme-text-h4: #52606e; 
-    --theme-text-p: #4f5b69;  
-    --theme-text-label: #46525f; 
-    --theme-text-input: #212529; 
-    --theme-text-muted: #7b8794; 
-    --theme-text-strong: #2a3b4d; 
-    --theme-text-link: #0066cc; 
-    --theme-text-success: #1a7f37; 
-    --theme-text-danger: #d93025;  
-    --theme-text-info: #007bff;    
-    --theme-text-warning: #ffc107; 
-    --theme-button-primary-bg: #007bff; 
-    --theme-button-primary-hover-bg: #0069d9; 
+    --theme-bg-page: #f8f9fa;
+    --theme-bg-container: #ffffff;
+    --theme-bg-section: #eef1f5;
+    --theme-bg-section-alt: #f8f9fa;
+    --theme-bg-input: #ffffff;
+    --theme-border-color: #d1d9e0;
+    --theme-divide-color: #e0e6ed;
+    --theme-text-h1: #2a3b4d;
+    --theme-text-h2: #3b4a5c;
+    --theme-text-h4: #52606e;
+    --theme-text-p: #4f5b69;
+    --theme-text-label: #46525f;
+    --theme-text-input: #212529;
+    --theme-text-muted: #7b8794;
+    --theme-text-strong: #2a3b4d;
+    --theme-text-link: #0066cc;
+    --theme-text-success: #1a7f37;
+    --theme-text-danger: #d93025;
+    --theme-text-info: #007bff;
+    --theme-text-warning: #ffc107;
+    --theme-button-primary-bg: #007bff;
+    --theme-button-primary-hover-bg: #0069d9;
     --theme-button-primary-text: #ffffff;
-    --theme-button-secondary-bg: #5a6673; 
+    --theme-button-secondary-bg: #5a6673;
     --theme-button-secondary-hover-bg: #48525c;
     --theme-button-secondary-text: #ffffff;
-    --theme-button-success-bg: #218838; 
+    --theme-button-success-bg: #218838;
     --theme-button-success-hover-bg: #1e7e34;
     --theme-button-success-text: #ffffff;
-    --theme-button-danger-bg: #c82333; 
+    --theme-button-danger-bg: #c82333;
     --theme-button-danger-hover-bg: #bd2130;
     --theme-button-danger-text: #ffffff;
-    --theme-button-warning-bg: #ffc107; 
+    --theme-button-warning-bg: #ffc107;
     --theme-button-warning-hover-bg: #e0a800;
-    --theme-button-warning-text: #212529; 
-    --theme-button-neutral-bg: #adb5bd; 
+    --theme-button-warning-text: #212529;
+    --theme-button-neutral-bg: #adb5bd;
     --theme-button-neutral-hover-bg: #98a1a9;
-    --theme-button-neutral-text: #212529; 
-    --theme-button-accent-bg: #138496; 
+    --theme-button-neutral-text: #212529;
+    --theme-button-accent-bg: #138496;
     --theme-button-accent-hover-bg: #117a8b;
     --theme-button-accent-text: #ffffff;
-    --theme-loader-top: var(--theme-button-primary-bg); 
-    --theme-danger-zone-border: #f1b0b7; 
-    --theme-text-danger-heading: var(--theme-text-danger); 
-    --theme-text-danger-p: #721c24; 
+    --theme-loader-top: var(--theme-button-primary-bg);
+    --theme-danger-zone-border: #f1b0b7;
+    --theme-text-danger-heading: var(--theme-text-danger);
+    --theme-text-danger-p: #721c24;
     --theme-button-danger-lg-bg: var(--theme-button-danger-bg);
     --theme-button-danger-lg-hover-bg: var(--theme-button-danger-hover-bg);
     --theme-modal-content-bg: #ffffff;
     --theme-modal-title-color: var(--theme-text-h2);
     --theme-modal-text-color: var(--theme-text-p);
-    --theme-modal-button-bg: var(--theme-button-secondary-bg); 
+    --theme-modal-button-bg: var(--theme-button-secondary-bg);
     --theme-modal-button-hover-bg: var(--theme-button-secondary-hover-bg);
     --theme-modal-button-text: #ffffff;
     --theme-section-padding-value: 1.5rem;
@@ -176,9 +191,9 @@ body.loading-active #appContainer {
 /* --- Applying Theme Variables --- */
 body {
     background-color: var(--theme-bg-page);
-    color: var(--theme-text-p); 
+    color: var(--theme-text-p);
 }
-.container { 
+.container {
     background-color: var(--theme-bg-container);
 }
 .theme-text-h1 { color: var(--theme-text-h1); }
@@ -205,7 +220,7 @@ body {
 .theme-section-bg { background-color: var(--theme-bg-section) !important; }
 .theme-section-bg-alt { background-color: var(--theme-bg-section-alt) !important; }
 .theme-border-color { border-color: var(--theme-border-color) !important; }
-.theme-divide-color { border-color: var(--theme-divide-color) !important; } 
+.theme-divide-color { border-color: var(--theme-divide-color) !important; }
 .theme-section-padding { padding: var(--theme-section-padding-value); }
 .theme-button-primary { background-color: var(--theme-button-primary-bg); color: var(--theme-button-primary-text); }
 .theme-button-primary:hover { background-color: var(--theme-button-primary-hover-bg); }
@@ -221,6 +236,7 @@ body {
 .theme-button-neutral:hover { background-color: var(--theme-button-neutral-hover-bg); }
 .theme-button-accent { background-color: var(--theme-button-accent-bg); color: var(--theme-button-accent-text); }
 .theme-button-accent:hover { background-color: var(--theme-button-accent-hover-bg); }
+.theme-loader-top:before { border-top-color: var(--theme-loader-top); } /* Correct usage for loader */
 .theme-danger-zone { border-top-color: var(--theme-danger-zone-border) !important; }
 .theme-text-danger-heading { color: var(--theme-text-danger-heading) !important; }
 .theme-text-danger-p { color: var(--theme-text-danger-p) !important; }
@@ -231,11 +247,12 @@ body {
 .theme-modal-text { color: var(--theme-modal-text-color); }
 .theme-modal-button { background-color: var(--theme-modal-button-bg); color: var(--theme-modal-button-text); }
 .theme-modal-button:hover { background-color: var(--theme-modal-button-hover-bg); }
+.theme-section-padding-value:before { content: "1.5rem"; } /* Example for a variable value */
 
 /* --- Islamic Mood Theme --- */
 body.theme-islamic {
     --theme-bg-page: #e1f0e5; /* Softer, desaturated light green */
-    --theme-bg-container: #ffffff; 
+    --theme-bg-container: #ffffff;
     --theme-bg-section: #f0fdf4; /* Very light green (Tailwind green-50) */
     --theme-bg-section-alt: #e1f0e5; /* Matching page background */
     --theme-bg-input: #ffffff;
@@ -249,49 +266,49 @@ body.theme-islamic {
 
     --theme-text-h1: #047857; /* Emerald-700 */
     --theme-text-h2: #059669; /* Emerald-600 */
-    --theme-text-h4: #047857; 
+    --theme-text-h4: #047857;
     --theme-text-p: #065f46; /* Emerald-800 for paragraphs */
-    --theme-text-label: #059669; 
-    --theme-text-input: #064e3b; 
-    --theme-text-muted: #065f46; 
-    --theme-text-strong: #064e3b; 
+    --theme-text-label: #059669;
+    --theme-text-input: #064e3b;
+    --theme-text-muted: #065f46;
+    --theme-text-strong: #064e3b;
     --theme-text-link: #10b981; /* Emerald-500 for links */
-    
+
     --theme-text-success: #16a34a; /* Green-600 */
     --theme-text-danger: #ef4444;  /* Red-500 */
     --theme-text-info: #3b82f6;    /* Blue-500 */
     --theme-text-warning: #f59e0b; /* Amber-500 */
 
-    --theme-button-primary-bg: #059669; 
-    --theme-button-primary-hover-bg: #047857; 
+    --theme-button-primary-bg: #059669;
+    --theme-button-primary-hover-bg: #047857;
     --theme-button-primary-text: #ffffff;
-    --theme-button-secondary-bg: #0d9488; 
-    --theme-button-secondary-hover-bg: #0f766e; 
+    --theme-button-secondary-bg: #0d9488;
+    --theme-button-secondary-hover-bg: #0f766e;
     --theme-button-secondary-text: #ffffff;
-    --theme-button-success-bg: #16a34a; 
-    --theme-button-success-hover-bg: #15803d; 
-    --theme-button-danger-bg: #ef4444; 
-    --theme-button-danger-hover-bg: #dc2626; 
-    --theme-button-warning-bg: #f59e0b; 
-    --theme-button-warning-hover-bg: #d97706; 
+    --theme-button-success-bg: #16a34a;
+    --theme-button-success-hover-bg: #15803d;
+    --theme-button-danger-bg: #ef4444;
+    --theme-button-danger-hover-bg: #dc2626;
+    --theme-button-warning-bg: #f59e0b;
+    --theme-button-warning-hover-bg: #d97706;
     --theme-button-neutral-bg: #a3d9b1; /* Softer green */
     --theme-button-neutral-hover-bg: #8dcba0;
     --theme-button-neutral-text: #064e3b; /* Dark green text */
-    --theme-button-accent-bg: #0e7490; 
-    --theme-button-accent-hover-bg: #155e75; 
+    --theme-button-accent-bg: #0e7490;
+    --theme-button-accent-hover-bg: #155e75;
 
-    --theme-loader-top: #059669; 
-    --theme-danger-zone-border: #fca5a5; 
-    --theme-text-danger-heading: #b91c1c; 
-    --theme-text-danger-p: #c2410c; 
-    --theme-button-danger-lg-bg: #b91c1c; 
-    --theme-button-danger-lg-hover-bg: #991b1b; 
+    --theme-loader-top: #059669;
+    --theme-danger-zone-border: #fca5a5;
+    --theme-text-danger-heading: #b91c1c;
+    --theme-text-danger-p: #c2410c;
+    --theme-button-danger-lg-bg: #b91c1c;
+    --theme-button-danger-lg-hover-bg: #991b1b;
 
-    --theme-modal-content-bg: #f0fdf4; 
-    --theme-modal-title-color: #065f46; 
-    --theme-modal-text-color: #047857; 
-    --theme-modal-button-bg: #059669; 
-    --theme-modal-button-hover-bg: #047857; 
+    --theme-modal-content-bg: #f0fdf4;
+    --theme-modal-title-color: #065f46;
+    --theme-modal-text-color: #047857;
+    --theme-modal-button-bg: #059669;
+    --theme-modal-button-hover-bg: #047857;
     --theme-modal-button-text: #ffffff;
 }
 
@@ -409,7 +426,7 @@ body.theme-blues {
     --theme-text-danger-heading: var(--theme-text-danger);
     --theme-text-danger-p: #721c24;
     --theme-button-danger-lg-bg: var(--theme-button-danger-bg);
-    --theme-button-danger-lg-hover-bg: var(--theme-button-danger-hover-bg);
+    --theme-button-danger-lg-hover-bg: var(--theme-button-danger-lg-hover-bg);
     --theme-modal-content-bg: #f0f9ff;
     --theme-modal-title-color: var(--theme-text-h2);
     --theme-modal-text-color: var(--theme-text-p);
@@ -466,7 +483,7 @@ body.theme-signal {
     --theme-text-danger-heading: var(--theme-text-danger);
     --theme-text-danger-p: #721c24;
     --theme-button-danger-lg-bg: var(--theme-button-danger-bg);
-    --theme-button-danger-lg-hover-bg: var(--theme-button-danger-hover-bg);
+    --theme-button-danger-lg-hover-bg: var(--theme-button-danger-lg-hover-bg);
     --theme-modal-content-bg: #ffffff;
     --theme-modal-title-color: var(--theme-text-h2);
     --theme-modal-text-color: var(--theme-text-p);
@@ -585,8 +602,8 @@ body.theme-dark {
     --theme-modal-title-color: var(--theme-text-h1);
     --theme-modal-text-color: var(--theme-text-p);
     --theme-modal-button-bg: var(--theme-button-secondary-bg);
-    --theme-modal-button-hover-bg: var(--theme-button-secondary-hover-bg);
-    --theme-modal-button-text: var(--theme-button-secondary-text);
+    --theme-modal-button-hover-bg: var(--theme-modal-button-hover-bg);
+    --theme-modal-button-text: var(--theme-modal-button-text);
 }
 
 /* --- Ta'leem Inspired Theme --- */
@@ -594,31 +611,31 @@ body.theme-taleem {
     --theme-bg-page: #f0f4f8; /* Light, slightly desaturated blue-gray */
     --theme-bg-container: #ffffff;
     --theme-bg-section: #e6eaf0; /* Slightly darker than page for sections */
-    --theme-bg-section-alt: #f8fafd; 
+    --theme-bg-section-alt: #f8fafd;
     --theme-bg-input: #ffffff;
 
     /* Subtle geometric pattern for the page background */
-    background-image: url("data:image/svg+xml,%3Csvg width='50' height='50' viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23cdd7e0' fill-opacity='0.2'%3E%3Cpath d='M0 50L50 0H40L0 40M10 0L0 10V0zM0 50V40L10 50z'/%3E%3Cpath d='M50 50L0 0H10L50 40M40 0L50 10V0zM50 50V40L40 50z'/%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='50' height='50' viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23cdd7e0' fill-opacity='0.2'%3E%3Cpath d='M0 50L50 0H40L0 40M10 0L0 10V0zM0 50V40L10 50z'/%3E%3Cpath d='M50 50L0 0H10L50 40M40 0L50 10V0zM50 50V40L40 50z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 30px 30px;
 
     --theme-border-color: #b0c4de; /* Steel blue / Slate gray border */
-    --theme-divide-color: #cad6e3; 
+    --theme-divide-color: #cad6e3;
 
     --theme-text-h1: #34495e; /* Dark Slate Gray */
     --theme-text-h2: #4a6981; /* Lighter Slate Gray */
-    --theme-text-h4: #52728c; 
-    --theme-text-p: #465a6c;  
-    --theme-text-label: #4a6981; 
-    --theme-text-input: #2c3e50; 
-    --theme-text-muted: #778da0; 
-    --theme-text-strong: #2c3e50; 
+    --theme-text-h4: #52728c;
+    --theme-text-p: #465a6c;
+    --theme-text-label: #4a6981;
+    --theme-text-input: #2c3e50;
+    --theme-text-muted: #778da0;
+    --theme-text-strong: #2c3e50;
     --theme-text-link: #4682B4; /* Steel Blue for links */
 
-    --theme-text-success: #28a745; 
-    --theme-text-danger: #dc3545;  
-    --theme-text-info: #4682B4;    
-    --theme-text-warning: #ffc107; 
+    --theme-text-success: #28a745;
+    --theme-text-danger: #dc3545;
+    --theme-text-info: #4682B4;
+    --theme-text-warning: #ffc107;
 
     --theme-button-primary-bg: #28a745; /* Green from 'Uttom' */
     --theme-button-primary-hover-bg: #218838;
@@ -629,20 +646,20 @@ body.theme-taleem {
     --theme-button-secondary-text: #ffffff;
 
     --theme-button-success-bg: var(--theme-text-success);
-    --theme-button-success-hover-bg: #1e7e34; 
+    --theme-button-success-hover-bg: #1e7e34;
     --theme-button-success-text: #ffffff;
 
     --theme-button-danger-bg: var(--theme-text-danger);
-    --theme-button-danger-hover-bg: #c82333; 
+    --theme-button-danger-hover-bg: #c82333;
     --theme-button-danger-text: #ffffff;
 
     --theme-button-warning-bg: #ffc107;
     --theme-button-warning-hover-bg: #e0a800;
-    --theme-button-warning-text: #212529; 
+    --theme-button-warning-text: #212529;
 
     --theme-button-neutral-bg: #b0c4de; /* Light Steel Blue */
     --theme-button-neutral-hover-bg: #98afc7;
-    --theme-button-neutral-text: #2c3e50; 
+    --theme-button-neutral-text: #2c3e50;
 
     --theme-button-accent-bg: #708090; /* Slate Gray as accent */
     --theme-button-accent-hover-bg: #5d6d7e;
@@ -650,16 +667,16 @@ body.theme-taleem {
 
     --theme-loader-top: var(--theme-button-primary-bg);
 
-    --theme-danger-zone-border: #f5c6cb; 
+    --theme-danger-zone-border: #f5c6cb;
     --theme-text-danger-heading: var(--theme-text-danger);
-    --theme-text-danger-p: #721c24; 
+    --theme-text-danger-p: #721c24;
     --theme-button-danger-lg-bg: var(--theme-button-danger-bg);
-    --theme-button-danger-lg-hover-bg: var(--theme-button-danger-hover-bg);
+    --theme-button-danger-lg-hover-bg: var(--theme-button-danger-lg-hover-bg);
 
     --theme-modal-content-bg: #ffffff;
     --theme-modal-title-color: var(--theme-text-h2);
     --theme-modal-text-color: var(--theme-text-p);
     --theme-modal-button-bg: var(--theme-button-secondary-bg);
-    --theme-modal-button-hover-bg: var(--theme-button-secondary-hover-bg);
+    --theme-modal-button-hover-bg: var(--theme-modal-button-hover-bg);
     --theme-modal-button-text: #ffffff;
 }
