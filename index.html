@@ -12,11 +12,12 @@
 </head>
 <body class="p-4 md:p-8 transition-colors duration-500">
     <div id="appContainer">
-        <div class="container mx-auto max-w-5xl p-6 md:p-8 rounded-lg shadow-xl transition-colors duration-500">
+        <div class="container mx-auto w-full p-6 md:p-8 rounded-lg shadow-xl transition-colors duration-500">
             <header class="mb-8 text-center no-print">
                 <div class="flex justify-between items-center mb-4">
                     <div></div>
-                    <h1 class="text-2xl md:text-3xl font-bold bengali theme-text-h1">আল-বারাকাহ সহায়ক সমিতি</h1>
+                    <!-- Added ID to the main title and cursor-pointer class -->
+                    <h1 id="mainAppTitle" class="text-2xl md:text-3xl font-bold bengali theme-text-h1 cursor-pointer">আল-বারাকাহ সহায়ক সমিতি</h1>
                     <div class="theme-selector-container">
                         <label for="themeSelector" class="sr-only bengali">থিম নির্বাচন করুন</label>
                         <select id="themeSelector" class="text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 bengali theme-input-bg theme-input-border theme-text-input theme-dropdown">
@@ -50,34 +51,36 @@
                     <p class="text-xs mt-2 bengali theme-text-muted">আপনার কনফিগ এই কম্পিউটারে সুবিধার জন্য আপনার ব্রাউজারের লোকাল স্টোরেজে সংরক্ষিত হয়। এটি এই পৃষ্ঠা দ্বারা অন্য কোথাও পাঠানো হয় না, শুধুমাত্র আপনার Firebase প্রকল্পের সাথে সংযোগ করতে ব্যবহৃত হয়।</p>
                 </section>
 
-                <section id="inputSection" class="space-y-6 no-print hidden">
-                    <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg theme-border-color">
-                        <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">সমিতির সামগ্রিক আর্থিক অবস্থা</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <p class="text-sm font-medium bengali theme-text-label">মোট উত্তোলিত সঞ্চয়:</p>
-                                <p id="totalSavingsDisplay" class="text-lg font-bold bengali theme-text-success">০.০০ টাকা</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium bengali theme-text-label">মোট বিতরণকৃত ঋণ (নেট):</p>
-                                <p id="totalLoanDisplay" class="text-lg font-bold bengali theme-text-danger">০.০০ টাকা</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium bengali theme-text-label">বর্তমান তহবিল:</p>
-                                <p id="currentCashDisplay" class="text-lg font-bold bengali theme-text-info">০.০০ টাকা</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium bengali theme-text-label">বর্তমান সদস্য সংখ্যা:</p>
-                                <p id="dashboardMemberCountDisplay" class="text-lg font-bold bengali theme-text-p">০ জন</p>
-                            </div>
-                            <div class="md:col-span-2">
-                                <p class="text-sm font-medium bengali theme-text-label">আজকের তারিখ:</p>
-                                <p id="currentDateDisplay" class="text-lg font-bold bengali theme-text-p">লোড হচ্ছে...</p>
-                            </div>
+                <!-- Main Dashboard Section - Now outside the general 'inputSection' wrapper -->
+                <section id="mainDashboardSection" class="my-6 p-4 rounded-md theme-section-padding theme-section-bg theme-border-color hidden">
+                    <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">সমিতির সামগ্রিক আর্থিক অবস্থা</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-sm font-medium bengali theme-text-label">মোট উত্তোলিত সঞ্চয়:</p>
+                            <p id="totalSavingsDisplay" class="text-lg font-bold bengali theme-text-success">০.০০ টাকা</p>
                         </div>
+                        <div>
+                            <p class="text-sm font-medium bengali theme-text-label">মোট বিতরণকৃত ঋণ (নেট):</p>
+                            <p id="totalLoanDisplay" class="text-lg font-bold bengali theme-text-danger">০.০০ টাকা</p>
                         </div>
+                        <div>
+                            <p class="text-sm font-medium bengali theme-text-label">বর্তমান তহবিল:</p>
+                            <p id="currentCashDisplay" class="text-lg font-bold bengali theme-text-info">০.০০ টাকা</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium bengali theme-text-label">বর্তমান সদস্য সংখ্যা:</p>
+                            <p id="dashboardMemberCountDisplay" class="text-lg font-bold bengali theme-text-p">০ জন</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <p class="text-sm font-medium bengali theme-text-label">আজকের তারিখ:</p>
+                            <p id="currentDateDisplay" class="text-lg font-bold bengali theme-text-p">লোড হচ্ছে...</p>
+                        </div>
+                    </div>
+                </section>
 
-                    <div class="theme-section-padding">
+                <!-- All other input sections are now grouped under a new 'inputFormsSection' and will be toggled -->
+                <section id="inputFormsSection" class="space-y-6 no-print hidden">
+                    <div id="memberManagementSection" class="theme-section-padding">
                         <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">সমিতির সদস্য এডিট করুন</h2>
                         <div class="p-3 rounded-md mb-3 theme-section-bg-alt theme-border-color">
                             <label for="newSocietyMemberName" class="block text-sm font-medium bengali theme-text-label">সমিতির জন্য নতুন সদস্যের নাম:</label>
@@ -87,12 +90,16 @@
                             </div>
                             <div id="societyMembersList" class="mt-2 text-sm theme-text-p">
                                 <h4 class="font-medium bengali theme-text-h4">বর্তমান সমিতির সদস্য: (<span id="memberCount">0</span>)</h4>
+                                <div class="relative mt-2 mb-3">
+                                    <input type="text" id="memberSearchInput" placeholder="সদস্যের নাম দিয়ে খুঁজুন..." class="w-full p-2 border rounded-md shadow-sm theme-input-bg theme-input-border theme-text-input bengali">
+                                    <span class="absolute right-3 top-2 text-gray-400">🔍</span>
+                                </div>
                                 <ul id="ulSocietyMembers" class="list-inside max-h-48 overflow-y-auto divide-y theme-divide-color"></ul>
                             </div>
                         </div>
                     </div>
 
-                    <div class="theme-section-padding">
+                    <div id="reportCreationSection" class="theme-section-padding">
                         <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">রিপোর্ট তৈরি করুন</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -106,11 +113,16 @@
                                 </select>
                             </div>
                         </div>
+                        <!-- Discard button for month/year lock, hidden by default -->
+                        <div class="mt-3 text-right">
+                            <button id="discardMonthYearBtn" class="font-semibold py-1 px-3 rounded-md shadow bengali theme-button-neutral hidden">মাস/সাল আনলক করুন</button>
+                        </div>
                     </div>
 
-                    <div class="theme-section-padding">
-                        <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">বর্তমান রিপোর্টে সদস্য এন্ট্রি যুক্ত করুন</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end p-3 border rounded-md theme-border-color">
+                    <!-- Single Entry Section -->
+                    <div id="singleEntrySection" class="theme-section-padding">
+                        <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">বর্তমান রিপোর্টে সদস্য এন্ট্রি যুক্ত করুন (একক)</h2>
+                        <div class="relative grid grid-cols-1 md:grid-cols-12 gap-2 items-end p-3 border rounded-md theme-border-color">
                             <div class="md:col-span-3">
                                 <label for="reportMemberNameSelect" class="block text-sm font-medium bengali theme-text-label">সদস্য নির্বাচন করুন:</label>
                                 <select id="reportMemberNameSelect" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
@@ -135,7 +147,45 @@
                             <button id="addMemberToReportBtn" class="md:col-span-2 font-semibold py-2 px-3 rounded-md shadow h-10 mt-1 md:mt-0 bengali theme-button-primary">
                                 রিপোর্টে যুক্ত করুন
                             </button>
+                            <!-- Inline message display area - MOVED OUTSIDE singleEntrySection -->
+                            <!-- <div id="inlineMessageDisplay" class="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300">
+                                <p class="bg-green-100 text-green-800 text-sm py-1 px-3 rounded-full shadow-md bengali"></p>
+                            </div> -->
                         </div>
+                    </div>
+
+                    <!-- Batch Entry Section (collapsible, placed below single entry) -->
+                    <details id="batchEntrySection" class="mt-6 p-3 border rounded-md theme-border-color theme-section-bg-alt">
+                        <summary class="text-md font-semibold bengali theme-text-h4 cursor-pointer">নির্বাচিত সদস্যদের জন্য ব্যাচ এন্ট্রি</summary>
+                        <div class="mt-4">
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                                <div class="md:col-span-3">
+                                    <label for="batchSavings" class="block text-sm font-medium bengali theme-text-label">সঞ্চয় জমা (ব্যাচ):</label>
+                                    <input type="number" id="batchSavings" placeholder="0" min="0" class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label for="batchSavingsWithdrawal" class="block text-sm font-medium bengali theme-text-label">সঞ্চয় উত্তোলন (ব্যাচ):</label>
+                                    <input type="number" id="batchSavingsWithdrawal" placeholder="0" min="0" class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label for="batchLoanDisbursed" class="block text-sm font-medium bengali theme-text-label">ঋণ গ্রহণ (ব্যাচ):</label>
+                                    <input type="number" id="batchLoanDisbursed" placeholder="0" min="0" class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label for="batchLoanRepayment" class="block text-sm font-medium bengali theme-text-label">ঋণ পরিশোধ (ব্যাচ):</label>
+                                    <input type="number" id="batchLoanRepayment" placeholder="0" min="0" class="mt-1 block w-full rounded-md border shadow-sm p-2 h-10 theme-input-bg theme-input-border theme-text-input">
+                                </div>
+                            </div>
+                            <button id="addBatchToReportBtn" class="w-full font-semibold py-2 px-4 rounded-md shadow bengali theme-button-secondary mt-3">
+                                নির্বাচিত সদস্যদের জন্য যুক্ত করুন
+                            </button>
+                            <p class="text-xs text-center text-gray-500 mt-2 bengali">সদস্য তালিকা থেকে যাদেরকে নির্বাচন করবেন, তাদের জন্য এই পরিমাণগুলো যুক্ত হবে।</p>
+                        </div>
+                    </details>
+
+                    <!-- Current Report Entries Preview Section (placed below both single and batch entry) -->
+                    <div id="currentReportEntriesPreviewSection" class="theme-section-padding">
+                        <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">বর্তমান রিপোর্টে যুক্ত এন্ট্রি</h2>
                         <div id="currentReportEntriesPreview" class="mt-3">
                             <h4 class="font-medium bengali theme-text-h4">বর্তমান রিপোর্টে যুক্ত এন্ট্রি: (<span id="currentReportEntryCount">0</span>)</h4>
                             <ul id="ulCurrentReportEntries" class="list-decimal list-inside text-sm max-h-24 overflow-y-auto theme-text-p"></ul>
@@ -145,7 +195,9 @@
                         </div>
                     </div>
 
+
                     <div class="mt-6 flex justify-center space-x-3">
+                        <button id="discardMonthYearBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral hidden">মাস/সাল আনলক করুন</button>
                         <button id="cancelEditReportBtn" class="font-semibold py-2 px-4 rounded-md shadow bengali theme-button-neutral hidden">বাতিল করুন</button>
                         <button id="generateReportBtn" class="font-bold py-3 px-8 rounded-lg shadow-lg bengali text-lg theme-button-success-lg">রিপোর্ট তৈরি ও সংরক্ষণ করুন</button>
                     </div>
@@ -153,7 +205,7 @@
 
                 <section id="reportOutputContainer" class="mt-10 hidden">
                     <div class="relative p-4 rounded-md min-h-[200px] border theme-section-bg theme-border-color">
-                         <button id="closeReportViewBtn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl leading-none font-bold" title="ভিউ বন্ধ করুন">&times;</button>
+                         <!-- Removed absolute positioning and moved into reportActionButtons div -->
                         <div id="reportOutput">
                             <p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>
                         </div>
@@ -162,6 +214,8 @@
                         <button id="downloadPdfBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-danger">পিডিএফ ডাউনলোড করুন</button>
                         <button id="exportCsvBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-primary">Excel ডাউনলোড করুন</button>
                         <button id="printReportBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-neutral">রিপোর্ট প্রিন্ট করুন</button>
+                        <!-- Added close button next to print report -->
+                        <button id="closeReportViewBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-neutral">বন্ধ করুন</button>
                     </div>
                 </section>
 
@@ -185,20 +239,20 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <button id="generateAnnualReportBtn" class="w-full font-semibold py-2 px-4 rounded-md shadow h-10 bengali theme-button-accent">বার্ষিক রিপোর্ট তৈরি করুন</button>
+                                    <button id="generateAnnualReportBtn" class="w-full font-semibold py-2 px-4 rounded-md shadow bengali theme-button-accent">বার্ষিক রিপোর্ট তৈরি করুন</button>
                                 </div>
                             </div>
                         </div>
                     </details>
                 </section>
 
-                <details class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color no-print">
+                <details id="appSettingsAndDataManagement" class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color no-print hidden">
                     <summary class="text-xl font-semibold bengali theme-text-h2 cursor-pointer">অ্যাপ সেটিংস ও ডেটা ব্যবস্থাপনা</summary>
                     <div class="mt-4 space-y-6">
                         <div class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
                             <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">অ্যাপ ইনস্ট্যান্স আইডি ব্যবস্থাপনা</h2>
                             <p class="text-sm mb-3 bengali theme-text-p">
-                                অন্য ডিভাইস থেকে একই ডেটা অ্যাক্সেস করতে, এই অ্যাপ ইনস্ট্যান্স আইডিটি কপি করে অন্য ডিভাইসের ইনপুট ফিল্ডে পেস্ট করুন।
+                                অন্য ডিভাইস থেকে একই ডেটা অ্যাক্সেস করতে, এই অ্যাপ ইনস্ট্যান্স আইডিটি কপি করে অন্য ডিভাইসের ইনপut ফিল্ডে পেস্ট করুন।
                                 বর্তমান অ্যাপ ইনস্ট্যান্স আইডি: <strong id="currentAppInstanceIdDisplay" class="theme-text-strong"></strong>
                             </p>
                             <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
@@ -273,6 +327,11 @@
             <div class="loader"></div>
             <p class="bengali theme-modal-text">লোড হচ্ছে...</p>
         </div>
+    </div>
+
+    <!-- MOVED: Inline message display area -->
+    <div id="inlineMessageDisplay" class="fixed top-0 left-0 w-full z-50 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300">
+        <p class="text-sm py-1 px-3 rounded-full shadow-md bengali"></p>
     </div>
 
    <script type="module" src="js/main.js"></script>

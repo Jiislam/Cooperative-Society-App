@@ -8,12 +8,55 @@ body {
 .bengali {
     font-family: 'Hind Siliguri', sans-serif;
 }
+
+/* --- CORRECTED PRINT STYLES --- */
 @media print {
-    body * { visibility: hidden; }
-    #reportOutput, #reportOutput * { visibility: visible; }
-    #reportOutput { position: absolute; left: 0; top: 0; width: 100%; }
-    .no-print { display: none !important; }
+    /* Hide elements that are specifically marked not for printing */
+    .no-print {
+        display: none !important;
+    }
+
+    /* By default, hide everything within the body */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* Then, make the report container and everything inside it visible again */
+    #reportOutputContainer, #reportOutputContainer * {
+        visibility: visible;
+    }
+
+    /* * THE FIX:
+     * 1. Position the report container at the absolute top-left of the page.
+     * 2. Remove the top margin that was pushing the content down.
+     * 3. Add a bit of padding for better print layout and remove borders/shadows.
+    */
+    #reportOutputContainer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0 !important; /* Removes the problematic top margin */
+        padding: 1rem;       /* Adds a small padding for print margins */
+        border: none;        /* Removes any border for a cleaner print */
+        box-shadow: none;    /* Removes any shadow for a cleaner print */
+    }
+    
+    /* The inner report div no longer needs special positioning */
+    #reportOutput {
+        position: static;
+    }
+
+    /* Optional: Add a clean border to tables for better print readability */
+    #reportOutput table, #reportOutput th, #reportOutput td {
+        border: 1px solid #ccc !important;
+    }
+    #reportOutput th {
+        background-color: #f0f0f0 !important;
+    }
 }
+
+
 .table-bordered th,
 .table-bordered td {
     border: 1px solid var(--theme-border-color, #e2e8f0);
@@ -37,6 +80,32 @@ body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* --- Inline Message Display (NEW) --- */
+#inlineMessageDisplay {
+    position: fixed;
+    /* Position it near the top-center or bottom-center, adjust as needed */
+    top: 20px; /* Adjust this value to change vertical position */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000; /* Ensure it's on top of other content */
+    opacity: 0;
+    visibility: hidden;
+    /* Add transition for smooth appearance/disappearance */
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    /* Ensure it doesn't block clicks when hidden */
+    pointer-events: none;
+    /* Small padding for the container itself, if desired */
+    padding: 0.5rem 1rem; /* Added padding to the container */
+    border-radius: 9999px; /* Fully rounded corners */
+}
+
+#inlineMessageDisplay.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Allow clicks when visible */
+}
+
 
 /* --- Modal Styles --- */
 .modal-overlay {
@@ -116,6 +185,7 @@ body.loading-active #appContainer {
 }
 
 /* Specific z-index for modals to ensure correct stacking order */
+/* Inline message will have a higher z-index to appear on top of modals if needed, but typically they don't overlap */
 #loadingModal {
     z-index: 1010; /* Lower than interactive modals */
 }
@@ -183,7 +253,7 @@ body.loading-active #appContainer {
     --theme-modal-title-color: var(--theme-text-h2);
     --theme-modal-text-color: var(--theme-text-p);
     --theme-modal-button-bg: var(--theme-button-secondary-bg);
-    --theme-modal-button-hover-bg: var(--theme-button-secondary-hover-bg);
+    --theme-modal-button-hover-bg: var(--theme-modal-button-hover-bg);
     --theme-modal-button-text: #ffffff;
     --theme-section-padding-value: 1.5rem;
 }
@@ -540,7 +610,7 @@ body.theme-apple {
     --theme-text-danger-heading: var(--theme-text-danger);
     --theme-text-danger-p: var(--theme-text-danger);
     --theme-button-danger-lg-bg: var(--theme-button-danger-bg);
-    --theme-button-danger-lg-hover-bg: var(--theme-button-danger-hover-bg);
+    --theme-button-danger-lg-hover-bg: var(--theme-button-danger-lg-hover-bg);
     --theme-modal-content-bg: #f9f9f9;
     --theme-modal-title-color: var(--theme-text-h1);
     --theme-modal-text-color: var(--theme-text-p);
@@ -677,6 +747,6 @@ body.theme-taleem {
     --theme-modal-title-color: var(--theme-text-h2);
     --theme-modal-text-color: var(--theme-text-p);
     --theme-modal-button-bg: var(--theme-button-secondary-bg);
-    --theme-modal-button-hover-bg: var(--theme-modal-button-hover-bg);
+    --theme-modal-button-hover-bg: var(--theme-button-secondary-hover-bg);
     --theme-modal-button-text: #ffffff;
 }

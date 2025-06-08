@@ -8,11 +8,15 @@ import {
 } from './firebaseService.js';
 
 import {
-    showLoadingUI, showFirebaseConfigSectionUI, showMessageUI,
+    showFirebaseConfigSectionUI, showMessageUI, showInlineMessageUI,
+    toggleInputSectionsVisibility,      // Now only controls inputFormsSection
+    toggleReportOutputVisibility,       // Controls reportOutputContainer
+    toggleAppSettingsVisibility,        // Controls appSettingsAndDataManagementSection
+    toggleAdditionalReportsVisibility,  // Controls additionalReportsSection
     renderSocietyMembersListUI,
     populateReportEntryMemberDropdownUI,
     populateMonthDropdownUI,
-    populateYearDropdownUI, // New: Import populateYearDropdownUI
+    populateYearDropdownUI,
     renderCurrentReportEntriesPreviewUI,
     updateOverallFinancialStatusDisplayUI,
     updateCurrentDateDisplayUI,
@@ -20,8 +24,8 @@ import {
     renderAnnualReportUI,
     populateStatementMemberDropdownUI, renderMemberStatementUI,
     toggleReportActionButtonsUI,
-    showConfirmModalUI, // Import new custom confirm modal
-    showPromptModalUI   // Import new custom prompt modal
+    showConfirmModalUI,
+    showPromptModalUI
 } from './uiHandler.js';
 
 // Import services
@@ -62,8 +66,8 @@ async function setAndLoadAppInstanceId(newId) {
     }
     localStorage.setItem('coopReportAppInstanceId', newId.trim());
     appInstanceId = newId.trim(); // Update the global variable
-    if (displayAppIdElement) {
-        displayAppIdElement.textContent = appInstanceId;
+    if (displayAppId) {
+        displayAppId.textContent = appInstanceId;
     }
     if (currentAppInstanceIdDisplay) { // Update the new display element
         currentAppInstanceIdDisplay.textContent = appInstanceId;
@@ -74,11 +78,13 @@ async function setAndLoadAppInstanceId(newId) {
 
 
 let currentReportEntries = [];
-let societyMembers = new Map(); // Stores active members
+let societyMembers = new Map(); // Stores active members (id -> name map)
 let cumulativeTotals = { savings: 0, loan: 0 };
 let lastRenderedReportData = { type: null, data: null, titleInfo: {} };
 let editingReportId = null;
 let editingReportOriginalTotals = null;
+let selectedBatchMembers = new Map(); // New: To store members selected for batch entry (memberId -> memberName)
+let selectedSingleMemberId = null; // New: To store the ID of the member selected in the single entry dropdown
 
 const banglaMonthsForUI = [
     "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন",
@@ -88,15 +94,18 @@ const banglaMonthsForUI = [
 // --- DOM Elements ---
 const firebaseConfigInput = document.getElementById('firebaseConfigInput');
 const saveFirebaseConfigBtn = document.getElementById('saveFirebaseConfigBtn');
-const displayAppIdElement = document.getElementById('displayAppId');
-const currentAppInstanceIdDisplay = document.getElementById('currentAppInstanceIdDisplay'); // New display for current ID
-const appInstanceIdInput = document.getElementById('appInstanceIdInput'); // New input for manual ID
-const loadAppInstanceIdBtn = document.getElementById('loadAppInstanceIdBtn'); // New button to load ID
-const copyAppInstanceIdBtn = document.getElementById('copyAppInstanceIdBtn'); // New button to copy ID
+const displayAppId = document.getElementById('displayAppId');
+const currentAppInstanceIdDisplay = document.getElementById('currentAppInstanceIdDisplay');
+const appInstanceIdInput = document.getElementById('appInstanceIdInput');
+const loadAppInstanceIdBtn = document.getElementById('loadAppInstanceIdBtn');
+const copyAppInstanceIdBtn = document.getElementById('copyAppInstanceIdBtn');
+
+// Main app title element
+const mainAppTitle = document.getElementById('mainAppTitle');
 
 
 const reportMonthSelect = document.getElementById('reportMonthSelect');
-const reportYearSelect = document.getElementById('reportYearSelect'); // Updated ID for select element
+const reportYearSelect = document.getElementById('reportYearSelect');
 
 const newSocietyMemberNameInput = document.getElementById('newSocietyMemberName');
 const addSocietyMemberBtn = document.getElementById('addSocietyMemberBtn');
@@ -115,31 +124,54 @@ const exportCsvBtn = document.getElementById('exportCsvBtn');
 const printReportBtn = document.getElementById('printReportBtn');
 const clearCurrentReportEntriesBtn = document.getElementById('clearCurrentReportEntriesBtn');
 const cancelEditReportBtn = document.getElementById('cancelEditReportBtn');
+const discardMonthYearBtn = document.getElementById('discardMonthYearBtn');
 
 // New UI Elements for Close button and Scroll-to-Top
-const closeReportViewBtn = document.getElementById('closeReportViewBtn'); // New: Close button for report view
-const scrollToTopBtn = document.getElementById('scrollToTopBtn'); // New: Scroll to top button
+const closeReportViewBtn = document.getElementById('closeReportViewBtn');
+const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+
+// New UI element for member search
+const memberSearchInput = document.getElementById('memberSearchInput');
+
+// New UI Elements for Batch Entry
+const batchSavingsInput = document.getElementById('batchSavings');
+const batchSavingsWithdrawalInput = document.getElementById('batchSavingsWithdrawal');
+const batchLoanDisbursedInput = document.getElementById('batchLoanDisbursed');
+const batchLoanRepaymentInput = document.getElementById('batchLoanRepayment');
+const addBatchToReportBtn = document.getElementById('addBatchToReportBtn');
+const batchEntrySection = document.getElementById('batchEntrySection');
 
 
 const previousReportsListContainer = document.getElementById('previousReportsListContainer');
 
 const reportOutputDiv = document.getElementById('reportOutput');
-const reportOutputContainer = document.getElementById('reportOutputContainer'); // Get report output container
+const reportOutputContainer = document.getElementById('reportOutputContainer');
 
-const annualReportYearSelect = document.getElementById('annualReportYearSelect'); // Updated ID for select element
+const annualReportYearSelect = document.getElementById('annualReportYearSelect');
 const generateAnnualReportBtn = document.getElementById('generateAnnualReportBtn');
 
 const resetAllDataBtn = document.getElementById('resetAllDataBtn');
 const exportAllDataBtn = document.getElementById('exportAllDataBtn');
 
-if (displayAppIdElement) {
-    displayAppIdElement.textContent = appInstanceId;
+const appSettingsAndDataManagementSection = document.getElementById('appSettingsAndDataManagement');
+
+// Get direct references to the main input sections that need to be toggled
+const memberManagementSection = document.getElementById('memberManagementSection');
+const reportCreationSection = document.getElementById('reportCreationSection');
+const singleEntrySection = document.getElementById('singleEntrySection');
+const currentReportEntriesPreviewSection = document.getElementById('currentReportEntriesPreviewSection');
+const mainDashboardSection = document.getElementById('mainDashboardSection');
+
+
+if (displayAppId) {
+    displayAppId.textContent = appInstanceId;
 }
-if (currentAppInstanceIdDisplay) { // Initialize the new display for current ID
+if (currentAppInstanceIdDisplay) {
     currentAppInstanceIdDisplay.textContent = appInstanceId;
 }
 
-// --- Helper function to reset edit mode ---
+// --- Helper function to reset edit mode (and discard entries) ---
+// This function acts as the "return to homepage" or "clear report view"
 function resetEditMode() {
     editingReportId = null;
     editingReportOriginalTotals = null;
@@ -148,26 +180,62 @@ function resetEditMode() {
         generateReportBtn.classList.remove('theme-button-accent');
         generateReportBtn.classList.add('theme-button-success-lg');
     }
+    // Unlock month and year selectors
     if (reportMonthSelect) reportMonthSelect.disabled = false;
-    if (reportYearSelect) reportYearSelect.disabled = false; // Updated ID here
-    if (cancelEditReportBtn) cancelEditReportBtn.classList.add('hidden'); // Hide cancel button
-    currentReportEntries = []; // Clear entries on cancel
+    if (reportYearSelect) reportYearSelect.disabled = false;
+    // Hide cancel and discard buttons
+    if (cancelEditReportBtn) cancelEditReportBtn.classList.add('hidden');
+    if (discardMonthYearBtn) discardMonthYearBtn.classList.add('hidden');
+    
+    currentReportEntries = []; // Clear entries on discard/cancel
     renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
-    updateReportMemberDropdown();
-    // After resetting edit mode, ensure report view is cleared and action buttons are hidden
+    updateReportMemberDropdown(); // Re-populate single entry dropdown
+    
+    // Clear batch selections and re-enable all checkboxes
+    selectedBatchMembers.clear();
+    const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+    // Pass currentReportEntries.map(entry => entry.memberId) to ensure checkboxes are re-enabled correctly
+    renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+    
+    // Clear batch input fields
+    if (batchSavingsInput) batchSavingsInput.value = '';
+    if (batchSavingsWithdrawalInput) batchSavingsWithdrawalInput.value = '';
+    if (batchLoanDisbursedInput) batchLoanDisbursedInput.value = '';
+    if (batchLoanRepaymentInput) batchLoanRepaymentInput.value = '';
+
+    // Collapse batch entry section
+    if (batchEntrySection) {
+        batchEntrySection.open = false; // Ensure it's collapsed
+    }
+
+    // Ensure all sections are visible for the "homepage" view
     setReportOutputHTML(`<p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>`);
     toggleReportActionButtonsUI(false);
     lastRenderedReportData = { type: null, data: null, titleInfo: {} };
+
+    toggleInputSectionsVisibility(true);     // Show input forms
+    toggleAdditionalReportsVisibility(true); // Show additional reports section
+    toggleReportOutputVisibility(false);     // Hide the report display section
+    toggleAppSettingsVisibility(true);       // Show app settings section
 }
 
 
 // --- Initialization Flow ---
 async function handleFirebaseInitialization(config) {
-    showLoadingUI(true);
+    showMessageUI("ফায়ারবেস সংযোগ করা হচ্ছে...", "info", 2000); // Inline feedback
     const { success, error } = await initializeFirebase(config);
     if (success) {
-        showMessageUI("ফায়ারবেস সফলভাবে সংযুক্ত হয়েছে!", "success");
-        showFirebaseConfigSectionUI(false);
+        showInlineMessageUI("ফায়ারবেস সফলভাবে সংযুক্ত হয়েছে!", "success", 2000);
+        showFirebaseConfigSectionUI(false); // This hides the Firebase config section itself
+
+        // Set initial visibility for "homepage" view
+        if (mainDashboardSection) mainDashboardSection.classList.remove('hidden'); // Ensure dashboard is visible
+        toggleInputSectionsVisibility(true);     // Show input forms
+        toggleAdditionalReportsVisibility(true); // Show additional reports section
+        toggleReportOutputVisibility(false);     // Hide report output initially
+        toggleAppSettingsVisibility(true);       // Show app settings
+        
+
         populateMonthDropdownUI();
         // Populate year dropdowns on initialization
         const currentYear = new Date().getFullYear();
@@ -182,7 +250,6 @@ async function handleFirebaseInitialization(config) {
         localStorage.removeItem(`firebaseConfig_${appInstanceId}`);
         updateCurrentDateDisplayUI();
     }
-    showLoadingUI(false);
     return success;
 }
 
@@ -232,7 +299,6 @@ window.addEventListener('load', async () => {
             localStorage.setItem('selectedTheme', selectedTheme);
         });
     }
-    showLoadingUI(false);
 
     // Initial check for scroll to top button visibility
     if (window.scrollY > 200) { // Show if scrolled more than 200px
@@ -265,6 +331,30 @@ window.addEventListener('load', async () => {
             });
         });
     }
+
+    // Member Search Input Listener
+    if (memberSearchInput) {
+        memberSearchInput.addEventListener('input', () => {
+            const searchTerm = memberSearchInput.value.toLowerCase();
+            // Pass currentReportEntries.map(entry => entry.memberId) to update member list checkboxes
+            renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, searchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+        });
+    }
+
+    // New: Listener for single member select dropdown to update selectedSingleMemberId and refresh member list
+    if (reportMemberNameSelect) {
+        reportMemberNameSelect.addEventListener('change', () => {
+            selectedSingleMemberId = reportMemberNameSelect.value;
+            const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+            // Pass currentReportEntries.map(entry => entry.memberId) to update member list checkboxes
+            renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+        });
+    }
+
+    // New: Event listener for main app title to return to homepage
+    if (mainAppTitle) {
+        mainAppTitle.addEventListener('click', resetEditMode);
+    }
 });
 
 if (saveFirebaseConfigBtn) {
@@ -292,6 +382,7 @@ if (loadAppInstanceIdBtn) {
     loadAppInstanceIdBtn.addEventListener('click', async () => {
         if (!appInstanceIdInput) return;
         const newId = appInstanceIdInput.value;
+        showInlineMessageUI("আইডি লোড করা হচ্ছে...", "info", 1500); // Inline feedback
         await setAndLoadAppInstanceId(newId);
     });
 }
@@ -325,7 +416,6 @@ function updateReportMemberDropdown() {
 }
 
 async function loadInitialData() {
-    showLoadingUI(true);
     try {
         const membersData = await fetchSocietyMembersFS(appInstanceId);
         if (Array.isArray(membersData)) {
@@ -339,7 +429,10 @@ async function loadInitialData() {
             console.warn("fetchSocietyMembersFS did not return an Array or Map as expected by main.js.");
         }
 
-        renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList);
+        const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+        // Pass currentReportEntries.map(entry => entry.memberId) to update member list checkboxes
+        renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+        
         updateReportMemberDropdown();
 
         cumulativeTotals = await fetchCumulativeTotalsFS(appInstanceId);
@@ -347,27 +440,54 @@ async function loadInitialData() {
 
         const reports = await fetchAllReportsMetadataFS(appInstanceId);
         populatePreviousReportsDropdownUI(reports, handleLoadPreviousReportFromList, handleInitiateEditReport, handleInitiateDeleteReport);
+        showInlineMessageUI("ডেটা লোড হয়েছে!", "info", 2000); // Changed to inline message
 
     } catch (error) {
         console.error("Error loading initial data in main.js:", error);
-        showMessageUI("Firestore থেকে প্রাথমিক ডেটা লোড করতে ব্যর্থ।", "error", 0);
+        showMessageUI("Firestore থেকে প্রাথমিক ডেটা লোad করতে ব্যর্থ।", "error", 0);
     } finally {
-        showLoadingUI(false);
+        // Any final actions that don't need a spinner
     }
 }
 
 // --- Event Listener Callbacks & Core Logic ---
 
+// New: Event listener for member selection checkbox (delegated to document)
+document.addEventListener('change', (event) => {
+    if (event.target.matches('.member-select-checkbox')) {
+        const checkbox = event.target;
+        const memberId = checkbox.value;
+        const memberName = checkbox.dataset.memberName; // Get member name from data attribute
+
+        // Get current report entries to update the disabled state accurately
+        const currentEntryMemberIds = currentReportEntries.map(entry => entry.memberId);
+
+        if (checkbox.checked) {
+            selectedBatchMembers.set(memberId, memberName);
+        } else {
+            selectedBatchMembers.delete(memberId);
+        }
+        // Re-render member dropdown and member list to ensure disabled states are correct
+        updateReportMemberDropdown();
+        const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+        renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentEntryMemberIds);
+    }
+});
+
+
 async function handleAddSocietyMember() {
     if (!newSocietyMemberNameInput) return;
     const name = newSocietyMemberNameInput.value;
 
-    showLoadingUI(true);
+    showMessageUI("সদস্য যুক্ত করা হচ্ছে...", "info", 1500); // Inline feedback
     const result = await addMember(appInstanceId, name, societyMembers);
 
     if (result.success) {
         societyMembers.set(result.newMemberId, result.memberName);
-        renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList);
+        const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+        // Pass currentReportEntries.map(entry => entry.memberId) to update member list checkboxes
+        renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+        
         updateReportMemberDropdown();
         updateOverallFinancialStatusDisplayUI(cumulativeTotals, societyMembers.size);
         showMessageUI(`সমিতির সদস্য "${result.memberName}" সফলভাবে যুক্ত হয়েছে।`, "success");
@@ -383,7 +503,6 @@ async function handleAddSocietyMember() {
         }
         console.error("Error adding member via service:", result.error);
     }
-    showLoadingUI(false);
 }
 
 async function handleDeleteMember(memberId, memberNameFromUI) {
@@ -393,7 +512,7 @@ async function handleDeleteMember(memberId, memberNameFromUI) {
     const confirmed = await showConfirmModalUI("সদস্য মুছুন", confirmationMessage, "মুছুন", "বাতিল করুন");
 
     if (confirmed) {
-        showLoadingUI(true);
+        showMessageUI(`সদস্য "${memberNameToConfirm}" মুছে ফেলা হচ্ছে...`, "info", 3000);
         try {
             const deleteResult = await deleteMemberFromService(appInstanceId, memberId);
 
@@ -402,27 +521,23 @@ async function handleDeleteMember(memberId, memberNameFromUI) {
             }
             const oldMemberNameForMessage = societyMembers.get(memberId) || memberNameToConfirm;
             societyMembers.delete(memberId);
+            selectedBatchMembers.delete(memberId); // Remove from batch selection if deleted
+            if (selectedSingleMemberId === memberId) { // If the deleted member was selected in single entry
+                selectedSingleMemberId = null;
+                if (reportMemberNameSelect) reportMemberNameSelect.value = '';
+            }
+
 
             currentReportEntries = currentReportEntries.filter(entry => entry.memberId !== memberId);
             renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
 
             let totalSavingsFromDeleted = 0;
             let totalLoanFromDeleted = 0;
-            // When a member is deleted, we need to re-calculate the cumulative totals
-            // based on the *remaining* active members' transactions across all reports.
-            // This is more robust than trying to subtract the deleted member's specific past totals,
-            // which might be complex due to report edits.
-
-            // 1. Fetch all reports to recalculate
             const allReports = await fetchAllReportsMetadataFS(appInstanceId);
             
-            // 2. Calculate the net impact of the *deleted* member's transactions
-            //    This is needed to adjust the global cumulative totals *before* the recalculation logic.
-            //    It ensures that when we adjust, we remove ONLY what that member contributed previously.
             allReports.forEach(report => {
                 if (report.entries && Array.isArray(report.entries)) {
                     report.entries.forEach(entry => {
-                        // Only count entries of the member being deleted
                         if (entry.memberId === memberId) {
                             totalSavingsFromDeleted += (Number(entry.savings) || 0);
                             totalSavingsFromDeleted -= (Number(entry.savingsWithdrawal) || 0);
@@ -435,24 +550,25 @@ async function handleDeleteMember(memberId, memberNameFromUI) {
                 }
             });
 
-            // 3. Adjust cumulative totals to reflect the removal of this member's historical contributions.
             if (totalSavingsFromDeleted !== 0 || totalLoanFromDeleted !== 0) {
+                showMessageUI("আর্থিক পরিসংখ্যান পুনরায় গণনা করা হচ্ছে...", "info", 3000);
                 const updatedTotals = await recalculateTotalsAfterDeletionFS(appInstanceId, totalSavingsFromDeleted, totalLoanFromDeleted);
                 cumulativeTotals = updatedTotals;
-                showMessageUI(`সদস্য "${oldMemberNameForMessage}" এর ঐতিহাসিক লেনদেন (নেট সঞ্চয়: ${totalSavingsFromDeleted.toFixed(2)}, নেট ঋণ: ${totalLoanFromDeleted.toFixed(2)}) ক্রমসঞ্চিত মোট থেকে বাদ দেওয়া হয়েছে।`, "info", 7000);
+                showInlineMessageUI(`সদস্য "${oldMemberNameForMessage}" এর ঐতিহাসিক লেনদেন (নেট সঞ্চয়: ${totalSavingsFromDeleted.toFixed(2)}, নেট ঋণ: ${totalLoanFromDeleted.toFixed(2)}) ক্রমসঞ্চিত মোট থেকে বাদ দেওয়া হয়েছে।`, "success", 7000); // Auto-dismiss
+            } else {
+                showMessageUI(`সদস্য "${oldMemberNameForMessage}" সফলভাবে মুছে ফেলা হয়েছে।`, "success", 3000); // Auto-dismiss
             }
 
-            // Re-render UI components that depend on member list or totals
-            renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList);
+            const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+            // Pass currentReportEntries.map(entry => entry.memberId) to update member list checkboxes
+            renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+            
             updateReportMemberDropdown();
             updateOverallFinancialStatusDisplayUI(cumulativeTotals, societyMembers.size);
             
-            // Re-populate previous reports dropdown as member data might affect statements
             const reportsForDropdown = await fetchAllReportsMetadataFS(appInstanceId);
             populatePreviousReportsDropdownUI(reportsForDropdown, handleLoadPreviousReportFromList, handleInitiateEditReport, handleInitiateDeleteReport);
 
-
-            showMessageUI(`সদস্য "${oldMemberNameForMessage}" সফলভাবে মুছে ফেলা হয়েছে।`, "success");
 
         } catch (error) {
             console.error("Error in handleDeleteMember:", error);
@@ -460,7 +576,7 @@ async function handleDeleteMember(memberId, memberNameFromUI) {
             showMessageUI(`সদস্য "${memberNameForErrorMessage}" কে মুছতে বা পরিসংখ্যান পুনরায় গণনা করতে ব্যর্থ: ${error.message}`, "error", 0);
             await loadInitialData(); // Attempt to reload data to restore consistent state
         } finally {
-            showLoadingUI(false);
+            // Nothing needed here now that showLoadingUI is removed
         }
     } else {
         showMessageUI("সদস্য মোছা বাতিল করা হয়েছে।", "info");
@@ -469,7 +585,7 @@ async function handleDeleteMember(memberId, memberNameFromUI) {
 
 
 async function handleAddMemberToReport() {
-    if (!reportMemberNameSelect || !memberSavingsInput || !memberSavingsWithdrawalInput || !memberLoanDisbursedInput || !memberLoanRepaymentInput) {
+    if (!reportMemberNameSelect) {
         showMessageUI("প্রয়োজনীয় ইনপুট উপাদান এক বা একাধিক পাওয়া যায়নি। অনুগ্রহ করে পৃষ্ঠাটি রিফ্রেশ করুন অথবা অ্যাডমিনকে জানান।", "error", 0);
         return;
     }
@@ -479,6 +595,7 @@ async function handleAddMemberToReport() {
         showMessageUI("রিপোর্টে যুক্ত করার জন্য অনুগ্রহ করে একজন সদস্য নির্বাচন করুন।", "error", 0);
         return;
     }
+    // For single entry, prevent adding if already in current report
     const existingEntry = currentReportEntries.find(entry => entry.memberId === memberId);
     if (existingEntry) {
         showMessageUI(`সদস্য "${existingEntry.memberName}" ইতিমধ্যে এই রিপোর্টে যুক্ত আছেন। অনুগ্রহ করে আগের এন্ট্রি মুছুন অথবা অন্য সদস্য নির্বাচন করুন।`, "warning", 0);
@@ -505,22 +622,9 @@ async function handleAddMemberToReport() {
         return;
     }
 
-    // Removed the validation for simultaneous savings deposit and withdrawal as per user request.
-    // if (savingsWithdrawal > 0 && savingsDeposit > 0) {
-    //     showMessageUI("একই এন্ট্রিতে সঞ্চয় জমা এবং উত্তোলন উভয়ই করা যাবে না। অনুগ্রহ করে আলাদা এন্ট্রি করুন।", "warning", 0);
-    //     return;
-    // }
-
-    // Removed the validation for simultaneous loan disbursement and repayment as per user request.
-    // if (loanDisbursed > 0 && loanRepayment > 0) {
-    //     showMessageUI("একই এন্ট্রিতে ঋণ গ্রহণ এবং ঋণ পরিশোধ উভয়ই করা যাবে না। অনুগ্রহ করে আলাদা এন্ট্রি করুন।", "warning", 0);
-    //     memberLoanDisbursedInput.focus();
-    //     return;
-    // }
-
     // --- Chronological Validation for Withdrawals and Loan Repayments ---
     const reportMonthString = reportMonthSelect.value;
-    const reportYearString = reportYearSelect.value; // Updated ID here
+    const reportYearString = reportYearSelect.value;
     const reportYearNumber = parseInt(reportYearString);
     const reportMonthIndex = banglaMonthsForUI.indexOf(reportMonthString);
 
@@ -529,14 +633,11 @@ async function handleAddMemberToReport() {
         return;
     }
 
-    // Create a Date object for the first day of the report month
     const reportDate = new Date(reportYearNumber, reportMonthIndex, 1);
 
     if (savingsWithdrawal > 0) {
-        showLoadingUI(true); // Show loading BEFORE the async call
-        // Get net savings as of the report date
+        showInlineMessageUI("সঞ্চয় ব্যালেন্স চেক করা হচ্ছে...", "info", 1500);
         const memberNetSavingsAsOfReportDate = await getMemberNetSavingsAsOfDate(appInstanceId, memberId, reportDate);
-        showLoadingUI(false); // Hide loading AFTER the async call
 
         if (memberNetSavingsAsOfReportDate === null) {
             showMessageUI("সদস্যের সঞ্চয় হিসাব করতে ত্রুটি হয়েছে।", "error", 0);
@@ -551,10 +652,8 @@ async function handleAddMemberToReport() {
     }
 
     if (loanRepayment > 0) {
-        showLoadingUI(true); // Show loading BEFORE the async call
-        // Get outstanding loan as of the report date
+        showInlineMessageUI("ঋণ ব্যালেন্স চেক করা হচ্ছে...", "info", 1500);
         const memberOutstandingLoanAsOfReportDate = await getMemberNetLoanAsOfDate(appInstanceId, memberId, reportDate);
-        showLoadingUI(false); // Hide loading AFTER the async call
 
         if (memberOutstandingLoanAsOfReportDate === null) {
             showMessageUI("সদস্যের ঋণ হিসাব করতে ত্রুটি হয়েছে।", "error", 0);
@@ -604,27 +703,214 @@ async function handleAddMemberToReport() {
         loanRepayment
     });
     renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
-    updateReportMemberDropdown();
-    showMessageUI(`"${memberName}" এর জন্য এন্ট্রি বর্তমান রিপোর্টে যুক্ত হয়েছে।`, "info");
+    updateReportMemberDropdown(); // Re-populate single entry dropdown
+    showInlineMessageUI(`"${memberName}" এর জন্য এন্ট্রি বর্তমান রিপোর্টে যুক্ত হয়েছে।`, "success", 1500);
 
+    // Clear single entry inputs
     memberSavingsInput.value = '';
     memberSavingsWithdrawalInput.value = '';
     memberLoanDisbursedInput.value = '';
     memberLoanRepaymentInput.value = '';
+    if (reportMemberNameSelect) reportMemberNameSelect.value = ''; // Clear selected member from dropdown
+    selectedSingleMemberId = null; // Clear selected single member
+    // Re-render member list to update disabled states based on new entry
+    const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+    renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+
     if (reportMemberNameSelect) reportMemberNameSelect.focus();
+
+    // If this is the first entry, lock month/year selectors and show discard button
+    if (currentReportEntries.length === 1 && !editingReportId) {
+        if (reportMonthSelect) reportMonthSelect.disabled = true;
+        if (reportYearSelect) reportYearSelect.disabled = true;
+        if (discardMonthYearBtn) discardMonthYearBtn.classList.remove('hidden'); // Show discard button
+    }
 }
+
+// New: handleAddBatchToReport function - completely rewritten for batch update/add
+async function handleAddBatchToReport() {
+    if (selectedBatchMembers.size === 0) {
+        showMessageUI("ব্যাচ এন্ট্রির জন্য কোনো সদস্য নির্বাচন করা হয়নি।", "error", 0);
+        return;
+    }
+    if (!reportMonthSelect || !reportYearSelect) {
+        showMessageUI("রিপোর্টের মাস বা বছর নির্বাচন করা হয়নি।", "error", 0);
+        return;
+    }
+
+    const batchSavings = parseFloat(batchSavingsInput.value) || 0;
+    const batchSavingsWithdrawal = parseFloat(batchSavingsWithdrawalInput.value) || 0;
+    const batchLoanDisbursed = parseFloat(batchLoanDisbursedInput.value) || 0;
+    const batchLoanRepayment = parseFloat(batchLoanRepaymentInput.value) || 0;
+
+    if (batchSavings < 0 || batchSavingsWithdrawal < 0 || batchLoanDisbursed < 0 || batchLoanRepayment < 0) {
+        showMessageUI("টাকার পরিমাণ ঋণাত্মক হতে পারবে না।", "error", 0);
+        return;
+    }
+
+    if (batchSavings === 0 && batchSavingsWithdrawal === 0 &&
+        batchLoanDisbursed === 0 && batchLoanRepayment === 0) {
+        showMessageUI("ব্যাচ এন্ট্রির জন্য কমপক্ষে একটি টাকার পরিমাণ ইনপুট করুন।", "warning", 0);
+        return;
+    }
+
+    const reportMonthString = reportMonthSelect.value;
+    const reportYearString = reportYearSelect.value;
+    const reportYearNumber = parseInt(reportYearString);
+    const reportMonthIndex = banglaMonthsForUI.indexOf(reportMonthString);
+    const reportDate = new Date(reportYearNumber, reportMonthIndex, 1);
+
+    let membersAddedCount = 0; // Renamed for clarity, tracks truly *new* entries
+    let membersSkippedCount = 0;
+    let insufficientFundsMembers = [];
+    let insufficientLoanMembers = [];
+    let alreadyInReportMembers = [];
+    let singleSelectedConflictMembers = [];
+
+    // Temporarily disable batch button during processing
+    if (addBatchToReportBtn) addBatchToReportBtn.disabled = true;
+    showInlineMessageUI("ব্যাচ এন্ট্রি প্রক্রিয়া করা হচ্ছে...", "info", 0); // Show processing message
+
+    // --- Pre-calculate total loan disbursement for the batch for cash validation ---
+    let totalBatchLoanDisbursedAttempted = 0;
+    selectedBatchMembers.forEach(() => {
+        totalBatchLoanDisbursedAttempted += batchLoanDisbursed;
+    });
+
+    // Calculate current total loan disbursement from existing entries in the draft report
+    const currentDraftLoanDisbursed = currentReportEntries.reduce((sum, entry) => sum + (Number(entry.loanDisbursed) || 0), 0);
+
+    // Check overall cash availability for the entire batch loan disbursement BEFORE processing
+    const cashOnHand = (cumulativeTotals.savings || 0) - (cumulativeTotals.loan || 0);
+    const projectedTotalLoanForThisReport = currentDraftLoanDisbursed + totalBatchLoanDisbursedAttempted;
+
+    if (batchLoanDisbursed > 0 && projectedTotalLoanForThisReport > cashOnHand) {
+        showMessageUI(
+            `সমিতির হাতে (${cashOnHand.toFixed(2)} টাকা) এই ব্যাচ ঋণ বিতরণের জন্য পর্যাপ্ত তহবিল নেই। ` +
+            `এই রিপোর্টে ইতিমধ্যে বিতরণ করার জন্য প্রস্তাবিত ঋণ (${currentDraftLoanDisbursed.toFixed(2)}) ` +
+            `এবং এই ব্যাচ এন্ট্রির ঋণ (${totalBatchLoanDisbursedAttempted.toFixed(2)}) সহ মোট ঋণ দাঁড়াবে ${projectedTotalLoanForThisReport.toFixed(2)} টাকা।`,
+            "error",
+            0
+        );
+        if (addBatchToReportBtn) addBatchToReportBtn.disabled = false;
+        return; // Halt batch operation if overall cash is insufficient
+    }
+
+    for (const [memberId, memberName] of selectedBatchMembers.entries()) {
+        let entryToProcess = {
+            memberId,
+            memberName,
+            savings: batchSavings,
+            savingsWithdrawal: batchSavingsWithdrawal,
+            loanDisbursed: batchLoanDisbursed,
+            loanRepayment: batchLoanRepayment
+        };
+
+        let skipMember = false;
+
+        // 1. Check for single selected member conflict
+        if (memberId === selectedSingleMemberId) {
+            singleSelectedConflictMembers.push(memberName);
+            skipMember = true;
+        }
+
+        // 2. Check if member already has an entry in currentReportEntries
+        const existingEntryIndex = currentReportEntries.findIndex(entry => entry.memberId === memberId);
+        if (existingEntryIndex !== -1) {
+            alreadyInReportMembers.push(memberName);
+            skipMember = true; // Mark to skip for batch
+        }
+
+
+        // --- Chronological Validation for Withdrawals and Loan Repayments ---
+        if (batchSavingsWithdrawal > 0 && !skipMember) {
+            const memberNetSavingsAsOfReportDate = await getMemberNetSavingsAsOfDate(appInstanceId, memberId, reportDate);
+            if (memberNetSavingsAsOfReportDate === null) {
+                showMessageUI(`সদস্যের সঞ্চয় হিসাব করতে ত্রুটি হয়েছে: ${memberName}।`, "error", 0);
+                membersSkippedCount++;
+                skipMember = true; // Flag to skip this member
+            } else if (batchSavingsWithdrawal > memberNetSavingsAsOfReportDate) {
+                insufficientFundsMembers.push(memberName);
+                skipMember = true; // Flag to skip this member
+            }
+        }
+
+        if (batchLoanRepayment > 0 && !skipMember) { // Only check if not already skipped
+            const memberOutstandingLoanAsOfReportDate = await getMemberNetLoanAsOfDate(appInstanceId, memberId, reportDate);
+            if (memberOutstandingLoanAsOfReportDate === null) {
+                showMessageUI(`সদস্যের ঋণ হিসাব করতে ত্রুটি হয়েছে: ${memberName}।`, "error", 0);
+                membersSkippedCount++;
+                skipMember = true;
+            } else if (memberOutstandingLoanAsOfReportDate <= 0 || batchLoanRepayment > memberOutstandingLoanAsOfReportDate) {
+                insufficientLoanMembers.push(memberName);
+                skipMember = true;
+            }
+        }
+
+        if (skipMember) {
+            membersSkippedCount++; // Increment overall skipped count for any reason
+            continue; // Skip this member and move to the next in the batch
+        }
+
+        // If not skipped, add as a new entry. (Existing entries are strictly skipped now)
+        currentReportEntries.push(entryToProcess);
+        membersAddedCount++;
+    }
+
+    renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
+    updateReportMemberDropdown(); // Re-populate single entry dropdown
+
+    let feedbackMessage = `ব্যাচ এন্ট্রি সম্পন্ন হয়েছে: ${membersAddedCount} জন সদস্যের এন্ট্রি যুক্ত হয়েছে।`;
+    if (membersSkippedCount > 0) {
+        feedbackMessage += ` ${membersSkippedCount} জন সদস্যকে বাদ দেওয়া হয়েছে। কারণ:`;
+        const reasons = [];
+        if (singleSelectedConflictMembers.length > 0) reasons.push(` একক এন্ট্রিতে নির্বাচিত (${singleSelectedConflictMembers.join(', ')})`);
+        if (alreadyInReportMembers.length > 0) reasons.push(` ইতিমধ্যে রিপোর্টে যুক্ত (${alreadyInReportMembers.join(', ')})`);
+        if (insufficientFundsMembers.length > 0) reasons.push(` সঞ্চয় অপর্যাপ্ত (${insufficientFundsMembers.join(', ')})`);
+        if (insufficientLoanMembers.length > 0) reasons.push(` ঋণ অপর্যাপ্ত (${insufficientLoanMembers.join(', ')}`);
+        
+        feedbackMessage += reasons.join(';');
+        feedbackMessage += `।`;
+    }
+    showInlineMessageUI(feedbackMessage, membersAddedCount > 0 ? "success" : "warning", 0); // Show message until user closes
+
+    // Clear batch inputs
+    if (batchSavingsInput) batchSavingsInput.value = '';
+    if (batchSavingsWithdrawalInput) batchSavingsWithdrawalInput.value = '';
+    if (batchLoanDisbursedInput) batchLoanDisbursedInput.value = '';
+    if (batchLoanRepaymentInput) batchLoanRepaymentInput.value = '';
+
+    // Clear batch selections and re-render member list to uncheck checkboxes
+    selectedBatchMembers.clear();
+    const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+    // Pass currentReportEntries.map(entry => entry.memberId) to update member list checkboxes
+    renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+
+    // If this is the first entry added or entries exist and not in edit mode, lock month/year selectors
+    if (currentReportEntries.length > 0 && !editingReportId) {
+        if (reportMonthSelect) reportMonthSelect.disabled = true;
+        if (reportYearSelect) reportYearSelect.disabled = true;
+        if (discardMonthYearBtn) discardMonthYearBtn.classList.remove('hidden'); // Show discard button
+    }
+    if (addBatchToReportBtn) addBatchToReportBtn.disabled = false; // Re-enable batch button
+}
+
 
 function handleDeleteSingleReportEntry(indexToDelete) {
     if (indexToDelete >= 0 && indexToDelete < currentReportEntries.length) {
         const removedEntry = currentReportEntries.splice(indexToDelete, 1)[0];
         renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
-        updateReportMemberDropdown();
-        showMessageUI(`"${removedEntry.memberName}" এর এন্ট্রি বর্তমান রিপোর্ট থেকে সফলভাবে মুছে ফেলা হয়েছে।`, "info");
-        if (currentReportEntries.length === 0) {
-            toggleReportActionButtonsUI(false);
-            if (editingReportId && generateReportBtn) {
-                generateReportBtn.textContent = "রিপোর্ট আপডেট করুন";
-            }
+        updateReportMemberDropdown(); // Re-populate single entry dropdown
+        showInlineMessageUI(`"${removedEntry.memberName}" এর এন্ট্রি বর্তমান রিপোর্ট থেকে সফলভাবে মুছে ফেলা হয়েছে।`, "info");
+        // Re-render member list to update disabled states (e.g., if a previously disabled member is now re-enabled)
+        const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+        renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+        
+        // If all entries are cleared, unlock month/year selectors if not in edit mode
+        if (currentReportEntries.length === 0 && !editingReportId) {
+            if (reportMonthSelect) reportMonthSelect.disabled = false;
+            if (reportYearSelect) reportYearSelect.disabled = false;
+            if (discardMonthYearBtn) discardMonthYearBtn.classList.add('hidden'); // Hide discard button if all entries cleared
         }
     }
 }
@@ -640,69 +926,64 @@ async function handleClearCurrentReportEntries() {
         if (confirmed) {
             currentReportEntries = [];
             renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
-            updateReportMemberDropdown();
-            showMessageUI("বর্তমান রিপোর্ট এন্ট্রিগুলি মুছে ফেলা হয়েছে।", "info");
+            updateReportMemberDropdown(); // Re-populate single entry dropdown
+            showInlineMessageUI("বর্তমান রিপোর্ট এন্ট্রিগুলি মুছে ফেলা হয়েছে।", "info");
             toggleReportActionButtonsUI(false);
             resetEditMode(); // Ensure edit mode is reset if all entries are cleared
         } else {
-            showMessageUI("এন্ট্রি মোছা বাতিল করা হয়েছে।", "info");
+            showInlineMessageUI("এন্ট্রি মোছা বাতিল করা হয়েছে।", "info");
         }
     } else {
-        showMessageUI("মোছার জন্য কোনও এন্ট্রি নেই।", "info");
+        showInlineMessageUI("মোছার জন্য কোনও এন্ট্রি নেই।", "info");
     }
 }
 
 async function handleGenerateReport() {
     if (currentReportEntries.length === 0 && !editingReportId) {
-        showMessageUI("রিপোর্ট তৈরি/আপডেট করতে অনুগ্রহ করে কমপক্ষে একটি সদস্য এন্ট্রি যুক্ত করুন।", "error", 0);
+        showInlineMessageUI("রিপোর্ট তৈরি/আপডেট করতে অনুগ্রহ করে কমপক্ষে একটি সদস্য এন্ট্রি যুক্ত করুন।", "error", 0);
         return;
     }
-    if (!reportMonthSelect || !reportYearSelect || !generateReportBtn) { // Updated ID here
+    if (!reportMonthSelect || !reportYearSelect || !generateReportBtn) {
         console.error("Required UI elements for report generation are missing.");
-        showMessageUI("রিপোর্ট তৈরির জন্য প্রয়োজনীয় UI উপাদান পাওয়া যায়নি।", "error", 0);
+        showInlineMessageUI("রিপোর্ট তৈরির জন্য প্রয়োজনীয় UI উপাদান পাওয়া যায়নি।", "error", 0);
         return;
     }
 
-    // Temporarily disable button and show loading spinner ONLY AFTER potential prompts/confirms
+    // Handle empty entries for edit mode FIRST, without blocking spinner
+    if (editingReportId && currentReportEntries.length === 0) {
+        const confirmed = await showConfirmModalUI(
+            "এন্ট্রিবিহীন রিপোর্ট",
+            "আপনি কি নিশ্চিত যে আপনি এই রিপোর্টটি কোনো এন্ট্রি ছাড়াই সংরক্ষণ করতে চান? এটি একটি খালি রিপোর্ট হিসেবে সংরক্ষণ হবে।",
+            "হ্যাঁ, সংরক্ষণ করুন",
+            "বাতিল করুন"
+        );
+        if (!confirmed) {
+            showInlineMessageUI("রিপোর্ট সংরক্ষণ বাতিল করা হয়েছে।", "info");
+            return; // Stop execution if not confirmed
+        }
+    }
+    
+    // Now, disable button and show inline message for the actual async operation
     generateReportBtn.disabled = true;
-    showLoadingUI(true);
+    showInlineMessageUI("রিপোর্ট তৈরি/আপডেট করা হচ্ছে...", "info", 0); // Persistent inline message
 
     try {
         const associationNameString = SOCIETY_NAME;
         const reportMonthString = reportMonthSelect.value;
-        const reportYearString = reportYearSelect.value; // Updated ID here
+        const reportYearString = reportYearSelect.value;
 
         let result;
         if (editingReportId) {
-            // Added check for entries being zero in edit mode
-            if (currentReportEntries.length === 0) {
-                // Hide loading spinner temporarily to show the prompt
-                showLoadingUI(false);
-                const confirmed = await showConfirmModalUI(
-                    "এন্ট্রিবিহীন রিপোর্ট",
-                    "আপনি কি নিশ্চিত যে আপনি এই রিপোর্টটি কোনো এন্ট্রি ছাড়াই সংরক্ষণ করতে চান? এটি একটি খালি রিপোর্ট হিসেবে সংরক্ষণ হবে।",
-                    "হ্যাঁ, সংরক্ষণ করুন",
-                    "বাতিল করুন"
-                );
-                // Re-show loading spinner if user confirms and operation continues
-                if (confirmed) {
-                    showLoadingUI(true);
-                } else {
-                    showMessageUI("রিপোর্ট সংরক্ষণ বাতিল করা হয়েছে।", "info");
-                    showLoadingUI(false); // Ensure loading is off
-                    generateReportBtn.disabled = false;
-                    return; // Stop execution if not confirmed
-                }
+            if (!editingReportOriginalTotals) {
+                showInlineMessageUI("সম্পাদনার জন্য মূল রিপোর্টের ডেটা অনুপস্থিত। অনুগ্রহ করে আবার চেষ্টা করুন।", "error", 0);
+                resetEditMode();
+                throw new Error("Original report totals missing for update.");
             }
-
-            // originalReportTotals is now pulled directly inside updateMonthlyReportAndRecalculate
-            // This parameter will be ignored by the service now.
-            // For clarity, ensure service function handles it gracefully.
             result = await updateMonthlyReportAndRecalculate(
                 appInstanceId,
                 editingReportId,
                 currentReportEntries,
-                editingReportOriginalTotals // This will be used by the service to get original data
+                editingReportOriginalTotals
             );
         } else {
             result = await createNewMonthlyReport(
@@ -715,7 +996,7 @@ async function handleGenerateReport() {
         }
 
         if (result.success) {
-            cumulativeTotals = editingReportId ? result.newGlobalCumulativeTotals : result.updatedCumulativeTotals;
+            cumulativeTotals = editingReportId ? result.newGlobalCumulativeTotals : result.savedReportData.cumulativeTotalsAtEndOfReport; // Ensure updated cumulative totals
             updateOverallFinancialStatusDisplayUI(cumulativeTotals, societyMembers.size);
 
             const reportsForDropdown = await fetchAllReportsMetadataFS(appInstanceId);
@@ -737,19 +1018,19 @@ async function handleGenerateReport() {
                 associationNameString,
                 reportMonthString,
                 reportYearString,
-                cumulativeTotals,
+                cumulativeTotals, // Pass the correct updated cumulative totals
                 reportDataToDisplay.monthlyTotals.savingsDeposit,
                 reportDataToDisplay.monthlyTotals.savingsWithdrawal,
                 createdAtJSDate,
                 updatedAtJSDate,
-                societyMembers // Pass societyMembers to renderReportToHtmlUI
+                societyMembers
             );
             lastRenderedReportData = {
                 type: 'monthly',
                 data: {
                     ...reportDataToDisplay,
-                    createdAt: createdAtJSDate, // Ensure Date object is stored
-                    updatedAt: updatedAtJSDate // Ensure Date object is stored
+                    createdAt: createdAtJSDate,
+                    updatedAt: updatedAtJSDate
                 },
                 titleInfo: {
                     associationName: associationNameString,
@@ -759,13 +1040,21 @@ async function handleGenerateReport() {
                 }
             };
             toggleReportActionButtonsUI(true);
+            toggleReportOutputVisibility(true);     // Show report output
+            toggleInputSectionsVisibility(true);     // Keep input sections visible
+            toggleAdditionalReportsVisibility(true); // Keep additional reports visible
+            toggleAppSettingsVisibility(true);       // Keep app settings visible
+
 
             const actionMessage = editingReportId ? "সফলভাবে আপডেট করা হয়েছে" : "তৈরি ও সংরক্ষিত হয়েছে";
-            showMessageUI(`রিপোর্ট (আইডি: ${reportDataToDisplay.id.substring(0,6)}...) ${actionMessage}।`, "success");
+            showInlineMessageUI(`রিপোর্ট (আইডি: ${reportDataToDisplay.id.substring(0,6)}...) ${actionMessage}।`, "success", 3000); // Auto-dismiss after 3s
 
             currentReportEntries = [];
             renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
-            updateReportMemberDropdown();
+            updateReportMemberDropdown(); // Re-populate single entry dropdown
+            // Re-render member list to update disabled states after new report generation
+            const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+            renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
 
             if (editingReportId) {
                 resetEditMode();
@@ -777,10 +1066,10 @@ async function handleGenerateReport() {
 
         } else {
             if (result.isDuplicate && !editingReportId) {
-                showMessageUI(result.error.message, "warning", 0);
+                showInlineMessageUI(result.error.message, "warning", 0);
             } else {
                 const actionVerb = editingReportId ? "আপডেট" : "তৈরি";
-                showMessageUI(`রিপোর্ট ${actionVerb} করতে ব্যর্থ: ${result.error.message || 'অজানা ত্রুটি।'}`, "error", 0);
+                showInlineMessageUI(`রিপোর্ট ${actionVerb} করতে ব্যর্থ: ${result.error.message || 'অজানা ত্রুটি।'}`, "error", 0);
             }
             console.error("Error generating/updating report via service:", result.error);
             // Ensure UI is reset even on failure
@@ -792,38 +1081,37 @@ async function handleGenerateReport() {
         }
     } catch (error) {
         console.error("Critical error in handleGenerateReport:", error);
-        showMessageUI("রিপোর্ট তৈরি/আপডেট করার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
+        showInlineMessageUI("রিপোর্ট তৈরি/আপডেট করার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
         toggleReportActionButtonsUI(false);
         if (editingReportId) {
             resetEditMode();
         }
     } finally {
-        showLoadingUI(false); // Always hide loading spinner
         if (generateReportBtn) generateReportBtn.disabled = false; // Always re-enable button
     }
 }
 
 async function handleLoadPreviousReportFromList(reportId) {
     if (!reportId) {
-        showMessageUI("লোড করার জন্য রিপোর্ট আইডি পাওয়া যায়নি।", "error", 0);
+        showInlineMessageUI("লোড করার জন্য রিপোর্ট আইডি পাওয়া যায়নি।", "error", 0);
         return;
     }
-    showLoadingUI(true);
+    showInlineMessageUI("রিপোর্ট লোড করা হচ্ছে...", "info", 1500); // Inline feedback
     try {
         if (editingReportId) {
             resetEditMode();
             currentReportEntries = [];
             renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
-            updateReportMemberDropdown();
+            updateReportMemberDropdown(); // Re-populate single entry dropdown
         }
 
         const result = await loadReportById(appInstanceId, reportId);
 
         if (result.success) {
             const reportData = result.reportData;
-            const associationNameStr = typeof reportData.associationName === 'string' ? reportData.associationName : SOCIETY_NAME;
-            const reportMonthStr = typeof reportData.month === 'string' ? reportData.month : "UnknownMonth";
-            const reportYearStr = typeof reportData.year === 'string' || typeof reportData.year === 'number' ? String(reportData.year) : "UnknownYear";
+            const associationNameStr = reportData.associationName || SOCIETY_NAME;
+            const reportMonthStr = reportData.month || "UnknownMonth";
+            const reportYearStr = String(reportData.year) || "UnknownYear";
 
             const monthlySavingsNet = reportData.monthlyTotals?.savings || 0;
             const monthlySavingsDeposit = reportData.monthlyTotals?.savingsDeposit || monthlySavingsNet;
@@ -849,14 +1137,14 @@ async function handleLoadPreviousReportFromList(reportId) {
                 monthlySavingsWithdrawal,
                 createdAtJSDate,
                 updatedAtJSDate,
-                societyMembers // Pass societyMembers to renderReportToHtmlUI
+                societyMembers
             );
             lastRenderedReportData = {
                 type: 'monthly',
                 data: {
                     ...reportData,
-                    createdAt: createdAtJSDate, // Ensure Date object is stored
-                    updatedAt: updatedAtJSDate // Ensure Date object is stored
+                    createdAt: createdAtJSDate,
+                    updatedAt: updatedAtJSDate
                 },
                 titleInfo: {
                     associationName: associationNameStr,
@@ -866,7 +1154,11 @@ async function handleLoadPreviousReportFromList(reportId) {
                 }
             };
             toggleReportActionButtonsUI(true);
-            showMessageUI(`রিপোর্ট "${reportMonthStr} ${reportYearStr}" সফলভাবে লোড হয়েছে।`, "success");
+            toggleReportOutputVisibility(true);     // Show report output
+            toggleInputSectionsVisibility(false);    // Hide input sections
+            toggleAdditionalReportsVisibility(true); // Show additional reports section
+            toggleAppSettingsVisibility(false);      // Hide app settings
+
 
             const reportOutputContainerElement = document.getElementById('reportOutputContainer');
             if (reportOutputContainerElement) {
@@ -875,28 +1167,28 @@ async function handleLoadPreviousReportFromList(reportId) {
 
         } else {
             console.error("Error loading previous report via service:", result.error);
-            showMessageUI(`পূর্ববর্তী রিপোর্ট লোড করতে ব্যর্থ: ${result.error.message}`, "error", 0);
+            showInlineMessageUI(`পূর্ববর্তী রিপোর্ট লোড করতে ব্যর্থ: ${result.error.message}`, "error", 0);
             setReportOutputHTML(`<p class="text-gray-400 text-center bengali">রিপোর্ট লোড করা যায়নি।</p>`);
             toggleReportActionButtonsUI(false);
             lastRenderedReportData = { type: null, data: null, titleInfo: {} };
         }
     } catch (error) {
         console.error("Critical error in handleLoadPreviousReportFromList:", error);
-        showMessageUI("পূর্ববর্তী রিপোর্ট লোড করার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
-        setReportOutputHTML(`<p class="text-gray-400 text-center bengali">রিপোর্ট লোড করা যায়নি।</p>`);
+        showInlineMessageUI("পূর্ববর্তী রিপোর্ট লোড করার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
+        setReportOutputHTML(`<p class="text-gray-400 text-center bengali">রিপোর্ট লোad করা যায়নি।</p>`);
         toggleReportActionButtonsUI(false);
         lastRenderedReportData = { type: null, data: null, titleInfo: {} };
     } finally {
-        showLoadingUI(false);
+        // Nothing needed here now that showLoadingUI is removed
     }
 }
 
 async function handleInitiateEditReport(reportId, month, year) {
     if (!reportId) {
-        showMessageUI("সম্পাদনা করার জন্য রিপোর্ট আইডি পাওয়া যায়নি।", "error", 0);
+        showInlineMessageUI("সম্পাদনা করার জন্য রিপোর্ট আইডি পাওয়া যায়নি।", "error", 0);
         return;
     }
-    showLoadingUI(true);
+    showInlineMessageUI("রিপোর্ট সম্পাদনার জন্য লোad করা হচ্ছে...", "info", 1500); // Inline feedback
     try {
         if (editingReportId) { // If already in edit mode for another report, reset first
             resetEditMode();
@@ -904,7 +1196,7 @@ async function handleInitiateEditReport(reportId, month, year) {
         // Always clear current entries when initiating a new edit, even if it's the same report
         currentReportEntries = [];
         renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
-        updateReportMemberDropdown();
+        updateReportMemberDropdown(); // Re-populate single entry dropdown
 
 
         const result = await loadReportById(appInstanceId, reportId);
@@ -925,7 +1217,11 @@ async function handleInitiateEditReport(reportId, month, year) {
             if (reportYearSelect) reportYearSelect.value = String(reportToEdit.year); // Updated ID here, ensure string value for select
 
             renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
-            updateReportMemberDropdown();
+            updateReportMemberDropdown(); // Re-populate single entry dropdown
+            // Re-render member list to update disabled states based on entries being loaded for edit
+            const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+            renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
+
 
             editingReportId = reportId;
             if (generateReportBtn) {
@@ -937,34 +1233,34 @@ async function handleInitiateEditReport(reportId, month, year) {
             if(reportMonthSelect) reportMonthSelect.disabled = true;
             if(reportYearSelect) reportYearSelect.disabled = true; // Updated ID here
             if(cancelEditReportBtn) cancelEditReportBtn.classList.remove('hidden'); // Show cancel button
+            if(discardMonthYearBtn) discardMonthYearBtn.classList.remove('hidden'); // Show discard button
 
-            showMessageUI(`"${reportToEdit.month} ${reportToEdit.year}" মাসের রিপোর্ট এখন সম্পাদনা করছেন।`, "info");
+            showInlineMessageUI(`"${reportToEdit.month} ${reportToEdit.year}" মাসের রিপোর্ট এখন সম্পাদনা করছেন।`, "success", 3000); // Auto-dismiss after 3s
 
-            const reportEntrySectionTitle = document.querySelector('#inputSection h2.bengali:nth-of-type(3)');
-            if (reportEntrySectionTitle && reportEntrySectionTitle.textContent.includes("বর্তমান রিপোর্টে সদস্য এন্ট্রি যুক্ত করুন")) {
-                 reportEntrySectionTitle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Scroll to report entry section after initiating edit
+            if (singleEntrySection) { // Targeting the single entry section
+                singleEntrySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
-                const addEntrySection = document.querySelector('#inputSection > div:nth-child(4)');
-                if (addEntrySection) {
-                    addEntrySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                    const inputSectionElement = document.getElementById('inputSection');
-                    if(inputSectionElement) inputSectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
+                const inputSectionElement = document.getElementById('inputSection'); // Fallback to general input section
+                if(inputSectionElement) inputSectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
 
             setReportOutputHTML(`<p class="text-gray-400 text-center bengali">"${reportToEdit.month} ${reportToEdit.year}" মাসের রিপোর্ট সম্পাদনা করছেন...</p>`);
             toggleReportActionButtonsUI(false);
+            toggleReportOutputVisibility(true);     // Show report output during edit
+            toggleInputSectionsVisibility(true);     // Keep input forms visible for editing
+            toggleAdditionalReportsVisibility(false); // Hide additional reports section
+            toggleAppSettingsVisibility(false);      // Hide app settings during edit
 
         } else {
-            throw result.error || new Error("সম্পাদনার জন্য মূল রিপোর্ট লোড করা যায়নি।");
+            throw result.error || new Error("সম্পাদনার জন্য মূল রিপোর্ট লোad করা যায়নি।");
         }
     } catch (error) {
         console.error("Error initiating report edit:", error);
-        showMessageUI(`রিপোর্ট সম্পাদনার জন্য লোড করতে ব্যর্থ: ${error.message}`, "error", 0);
+        showInlineMessageUI(`রিপোর্ট সম্পাদনার জন্য লোad করতে ব্যর্থ: ${error.message}`, "error", 0);
         resetEditMode();
     } finally {
-        showLoadingUI(false);
+        // Nothing needed here now that showLoadingUI is removed
     }
 }
 
@@ -973,11 +1269,11 @@ async function handleInitiateDeleteReport(reportId, month, year) {
     const confirmed = await showConfirmModalUI("রিপোর্ট মুছুন", confirmationMessage, "মুছুন", "বাতিল করুন");
 
     if (!confirmed) {
-        showMessageUI("রিপোর্ট মোছা বাতিল করা হয়েছে।", "info");
+        showInlineMessageUI("রিপোর্ট মোছা বাতিল করা হয়েছে।", "info");
         return;
     }
 
-    showLoadingUI(true);
+    showInlineMessageUI(`"${month} ${year}" মাসের রিপোর্ট মুছে ফেলা হচ্ছে...`, "info", 0); // Persistent inline feedback
     try {
         const result = await deleteMonthlyReportAndRecalculate(appInstanceId, reportId);
 
@@ -989,45 +1285,49 @@ async function handleInitiateDeleteReport(reportId, month, year) {
             populatePreviousReportsDropdownUI(reportsForDropdown, handleLoadPreviousReportFromList, handleInitiateEditReport, handleInitiateDeleteReport);
 
             if (lastRenderedReportData && lastRenderedReportData.type === 'monthly' && lastRenderedReportData.titleInfo.id === reportId) {
-                setReportOutputHTML(`<p class="text-gray-400 text-center bengali">রিপোর্ট মুছে ফেলা হয়েছে। নতুন রিপোর্ট তৈরি করুন বা অন্য একটি লোড করুন।</p>`);
+                setReportOutputHTML(`<p class="text-center bengali theme-text-muted">রিপোর্ট মুছে ফেলা হয়েছে। নতুন রিপোর্ট তৈরি করুন বা অন্য একটি লোad করুন।</p>`);
                 toggleReportActionButtonsUI(false);
                 lastRenderedReportData = { type: null, data: null, titleInfo: {} };
             }
-            showMessageUI(`"${month} ${year}" মাসের রিপোর্ট সফলভাবে মুছে ফেলা হয়েছে এবং আর্থিক পরিসংখ্যান আপডেট করা হয়েছে।`, "success");
+            showInlineMessageUI(`"${month} ${year}" মাসের রিপোর্ট সফলভাবে মুছে ফেলা হয়েছে এবং আর্থিক পরিসংখ্যান আপডেট করা হয়েছে।`, "success", 3000); // Auto-dismiss after 3s
+            
+            toggleReportOutputVisibility(false);     // Hide report output after deletion
+            toggleInputSectionsVisibility(true);     // Show input sections
+            toggleAdditionalReportsVisibility(true); // Show additional reports section
+            toggleAppSettingsVisibility(true);       // Show app settings
+
+
         } else {
-            console.error("Error deleting report via service:", result.error);
-            showMessageUI(`রিপোর্ট মুছতে ব্যর্থ: ${result.error.message || 'অজানা ত্রুটি।'}`, "error", 0);
+            console.error("Error deleting report via service:", error);
+            showInlineMessageUI(`রিপোর্ট মুছতে ব্যর্থ: ${error.message}`, "error", 0);
         }
     }
     catch (error) {
         console.error("Critical error in handleInitiateDeleteReport:", error);
-        showMessageUI("রিপোর্ট মোছার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
+        showInlineMessageUI("রিপোর্ট মোছার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
     } finally {
-        showLoadingUI(false);
+        // Nothing needed here now that showLoadingUI is removed
     }
 }
 
 
 async function handleGenerateAnnualReport() {
-    if (!annualReportYearSelect || !annualReportYearSelect.value) { // Updated ID here
-        showMessageUI("অনুগ্রহ করে বার্ষিক রিপোর্টের জন্য বছর নির্বাচন করুন।", "error", 0);
+    if (!annualReportYearSelect || !annualReportYearSelect.value) {
+        showInlineMessageUI("অনুগ্রহ করে বার্ষিক রিপোর্টের জন্য বছর নির্বাচন করুন।", "error", 0);
         return;
     }
-    const yearNum = parseInt(annualReportYearSelect.value); // Updated ID here
+    const yearNum = parseInt(annualReportYearSelect.value);
     if (isNaN(yearNum) || String(yearNum).length !== 4) {
-        showMessageUI("অনুগ্রহ করে একটি সঠিক ৪-সংখ্যার বছর লিখুন।", "error", 0);
+        showInlineMessageUI("অনুগ্রহ করে একটি সঠিক ৪-সংখ্যার বছর লিখুন।", "error", 0);
         return;
     }
-    showLoadingUI(true);
+    showInlineMessageUI(`বার্ষিক রিপোর্ট (${yearNum} সাল) তৈরি করা হচ্ছে...`, "info", 0); // Persistent inline feedback
     try {
         const result = await generateAnnualReportData(appInstanceId, yearNum, banglaMonthsForUI);
         if (result.success) {
             const { year, monthlyData, yearlyTotals, startOfYearTotals, endOfYearTotals, isEmpty, memberSummaries } = result.annualReportViewData;
-            if (isEmpty) { showMessageUI(`${year} সালের জন্য কোনও রিপোর্ট পাওয়া হয়নি।`, "info"); }
-            else { showMessageUI(`${year} সালের বার্ষিক রিপোর্ট সফলভাবে তৈরি হয়েছে।`, "success"); }
-            // For annual report, memberSummaries are already derived from active members up to the end of the year.
-            // So, simply passing societyMembers (active list) to renderAnnualReportUI is sufficient if needed there,
-            // but for rendering annual report, we use memberSummaries provided by generateAnnualReportData.
+            if (isEmpty) { showInlineMessageUI(`${year} সালের জন্য কোনও রিপোর্ট পাওয়া হয়নি।`, "info"); }
+            else { showInlineMessageUI(`${year} সালের বার্ষিক রিপোর্ট সফলভাবে তৈরি হয়েছে।`, "success", 3000); } // Auto-dismiss after 3s
             renderAnnualReportUI(year, monthlyData, yearlyTotals, startOfYearTotals, endOfYearTotals, memberSummaries);
             lastRenderedReportData = {
                 type: 'annual',
@@ -1035,22 +1335,30 @@ async function handleGenerateAnnualReport() {
                 titleInfo: { associationName: SOCIETY_NAME, year: String(year) }
             };
             toggleReportActionButtonsUI(true);
+            toggleReportOutputVisibility(true);     // Show report output
+            toggleInputSectionsVisibility(false);    // Hide input sections
+            toggleAdditionalReportsVisibility(true); // Show additional reports section
+            toggleAppSettingsVisibility(false);      // Hide app settings
+
+
         } else {
             console.error("Error generating annual report via service:", result.error);
-            showMessageUI(`বার্ষিক রিপোর্ট তৈরিতে ব্যর্থ: ${result.error.message}`, "error", 0);
+            showInlineMessageUI(`বার্ষিক রিপোর্ট তৈরিতে ব্যর্থ: ${result.error.message}`, "error", 0);
             if (reportOutputDiv) setReportOutputHTML(`<p class="text-gray-400 text-center bengali">বার্ষিক রিপোর্ট তৈরি করা যায়নি।</p>`);
             toggleReportActionButtonsUI(false); lastRenderedReportData = { type: null, data: null, titleInfo: {} };
         }
     } catch (error) {
         console.error("Critical error in handleGenerateAnnualReport:", error);
-        showMessageUI("বার্ষিক রিপোর্ট তৈরি করার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
+        showInlineMessageUI("বার্ষিক রিপোর্ট তৈরি করার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
         if (reportOutputDiv) setReportOutputHTML(`<p class="text-gray-400 text-center bengali">বার্ষিক রিপোর্ট তৈরি করা যায়নি।</p>`);
         toggleReportActionButtonsUI(false); lastRenderedReportData = { type: null, data: null, titleInfo: {} };
-    } finally { showLoadingUI(false); }
+    } finally {
+        // Nothing needed here now that showLoadingUI is removed
+    }
 }
 
 async function generateMemberStatementLogic(memberId, memberName) {
-    showLoadingUI(true);
+    showInlineMessageUI(`${memberName} এর বিবৃতি তৈরি করা হচ্ছে...`, "info", 0); // Persistent inline feedback
     try {
         const result = await generateMemberStatementData(appInstanceId, memberId, banglaMonthsForUI);
         if (result.success) {
@@ -1058,24 +1366,32 @@ async function generateMemberStatementLogic(memberId, memberName) {
             renderMemberStatementUI(memberName, transactions, SOCIETY_NAME);
             lastRenderedReportData = { type: 'memberStatement', data: { memberName, transactions }, titleInfo: { associationName: SOCIETY_NAME, memberName: typeof memberName === 'string' ? memberName : "UnknownMember" } };
             toggleReportActionButtonsUI(true);
-            showMessageUI(`${memberName} এর জন্য সদস্য বিবৃতি সফলভাবে তৈরি হয়েছে।`, "success");
+            showInlineMessageUI(`${memberName} এর জন্য সদস্য বিবৃতি সফলভাবে তৈরি হয়েছে।`, "success", 3000); // Auto-dismiss after 3s
+            toggleReportOutputVisibility(true);     // Show report output
+            toggleInputSectionsVisibility(false);    // Hide input sections
+            toggleAdditionalReportsVisibility(true); // Show additional reports section
+            toggleAppSettingsVisibility(false);      // Hide app settings
+
+
         } else {
             console.error("Error generating member statement via service:", result.error);
-            showMessageUI(`সদস্যের বিবৃতি তৈরিতে ব্যর্থ: ${result.error.message}`, "error", 0);
+            showInlineMessageUI(`সদস্যের বিবৃতি তৈরিতে ব্যর্থ: ${result.error.message}`, "error", 0);
             if (reportOutputDiv) setReportOutputHTML(`<p class="text-gray-400 text-center bengali">সদস্যের বিবৃতি তৈরি করা যায়নি।</p>`);
             toggleReportActionButtonsUI(false); lastRenderedReportData = { type: null, data: null, titleInfo: {} };
         }
     } catch (error) {
         console.error("Critical error in generateMemberStatementLogic:", error);
-        showMessageUI("সদস্যের বিবৃতি তৈরি করার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
+        showInlineMessageUI("সদস্যের বিবৃতি তৈরি করার সময় একটি গুরুতর ত্রুটি ঘটেছে।", "error", 0);
         if (reportOutputDiv) setReportOutputHTML(`<p class="text-gray-400 text-center bengali">সদস্যের বিবৃতি তৈরি করা যায়নি।</p>`);
         toggleReportActionButtonsUI(false); lastRenderedReportData = { type: null, data: null, titleInfo: {} };
-    } finally { showLoadingUI(false); }
+    } finally {
+        // Nothing needed here now that showLoadingUI is removed
+    }
 }
 
 async function handleViewMemberStatementFromList(memberId, memberName) {
     if (!memberId || !memberName) {
-        showMessageUI("সদস্য নির্বাচন করা হয়নি।", "error", 0);
+        showInlineMessageUI("সদস্য নির্বাচন করা হয়নি।", "error", 0);
         return;
     }
     await generateMemberStatementLogic(memberId, memberName);
@@ -1088,7 +1404,7 @@ async function handleViewMemberStatementFromList(memberId, memberName) {
 function handlePrintReport() {
     const reportOutputElement = document.getElementById('reportOutput');
     if (!reportOutputElement || !reportOutputElement.innerHTML.includes("<table")) {
-        showMessageUI("প্রিন্ট করার জন্য প্রথমে একটি রিপোর্ট প্রদর্শন করুন।", "error", 0);
+        showInlineMessageUI("প্রিন্ট করার জন্য প্রথমে একটি রিপোর্ট প্রদর্শন করুন।", "error", 0);
         return;
     }
     window.print();
@@ -1096,24 +1412,23 @@ function handlePrintReport() {
 
 async function handleExportAllData() {
     if (!appInstanceId) {
-        showMessageUI("অ্যাপ্লিকেশন সঠিকভাবে শুরু হয়নি। অনুগ্রহ করে পৃষ্ঠাটি রিফ্রেশ করুন।", "error", 0);
+        showInlineMessageUI("অ্যাপ্লিকেশন সঠিকভাবে শুরু হয়নি। অনুগ্রহ করে পৃষ্ঠাটি রিফ্রেশ করুন।", "error", 0);
         return;
     }
-    showLoadingUI(true);
-    showMessageUI("সকল ডেটা এক্সপোর্ট করা হচ্ছে...", "info");
+    showInlineMessageUI("সকল ডেটা এক্সপোর্ট করা হচ্ছে...", "info", 0); // Persistent inline feedback
     try {
         const allData = await fetchAllDataForExportFS(appInstanceId);
 
         if (allData) {
-            exportAllDataToJson(allData, showMessageUI, appInstanceId);
+            exportAllDataToJson(allData, showInlineMessageUI, appInstanceId);
         } else {
             throw new Error("এক্সপোর্ট করার জন্য কোনও ডেটা পাওয়া যায়নি।");
         }
     } catch (error) {
         console.error("Error exporting all data:", error);
-        showMessageUI(`সকল ডেটা এক্সপোর্ট করতে ব্যর্থ: ${error.message}`, "error", 0);
+        showInlineMessageUI(`সকল ডেটা এক্সপোর্ট করতে ব্যর্থ: ${error.message}`, "error", 0);
     } finally {
-        showLoadingUI(false);
+        // Nothing needed here now that showLoadingUI is removed
     }
 }
 
@@ -1123,7 +1438,7 @@ async function handleResetAllApplicationData() {
     const confirmed1 = await showConfirmModalUI("সব ডেটা রিসেট করুন", confirmMsg1, "হ্যাঁ, রিসেট করুন", "বাতিল করুন");
 
     if (!confirmed1) {
-        showMessageUI("ডেটা রিসেট বাতিল করা হয়েছে।", "info"); return;
+        showInlineMessageUI("ডেটা রিসেট বাতিল করা হয়েছে।", "info"); return;
     }
 
     const confirm2Text = appInstanceId.slice(-6);
@@ -1136,10 +1451,10 @@ async function handleResetAllApplicationData() {
     );
 
     if (confirm2 !== confirm2Text) {
-        showMessageUI("নিশ্চিতকরণ টেক্সট মেলেনি। ডেটা রিসেট বাতিল করা হয়েছে।", "warning", 0); return;
+        showInlineMessageUI("নিশ্চিতকরণ টেক্সট মেলেনি। ডেটা রিসেট বাতিল করা হয়েছে।", "warning", 0); return;
     }
 
-    showLoadingUI(true); showMessageUI("সমস্ত ডেটা রিসেট করা হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।", "info", 0);
+    showInlineMessageUI("সমস্ত ডেটা রিসেট করা হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।", "info", 0); // Persistent inline feedback
     try {
         await deleteAllMembersFS(appInstanceId);
         await deleteAllReportsFS(appInstanceId);
@@ -1148,19 +1463,30 @@ async function handleResetAllApplicationData() {
         currentReportEntries = []; societyMembers.clear(); cumulativeTotals = { savings: 0, loan: 0 }; lastRenderedReportData = { type: null, data: null, titleInfo: {} };
 
         renderCurrentReportEntriesPreviewUI(currentReportEntries, handleDeleteSingleReportEntry);
-        renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList);
+        const currentSearchTerm = memberSearchInput ? memberSearchInput.value.toLowerCase() : '';
+        // Pass currentReportEntries.map(entry => entry.memberId) to update member list checkboxes
+        renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
         updateReportMemberDropdown();
         updateOverallFinancialStatusDisplayUI(cumulativeTotals, societyMembers.size);
         const reports = await fetchAllReportsMetadataFS(appInstanceId);
         populatePreviousReportsDropdownUI(reports, handleLoadPreviousReportFromList, handleInitiateEditReport, handleInitiateDeleteReport);
-        setReportOutputHTML(`<p class="text-gray-400 text-center bengali">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>`);
+        setReportOutputHTML(`<p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>`);
         toggleReportActionButtonsUI(false);
-        showMessageUI("সমস্ত ডেটা সফলভাবে রিসেট করা হয়েছে।", "success");
+        showInlineMessageUI("সমস্ত ডেটা সফলভাবে রিসেট করা হয়েছে।", "success", 3000); // Auto-dismiss after 3s
+        
+        toggleReportOutputVisibility(false);     // Hide report output
+        toggleInputSectionsVisibility(true);     // Show input sections
+        toggleAdditionalReportsVisibility(true); // Show additional reports section
+        toggleAppSettingsVisibility(true);       // Show app settings
+
+
     } catch (error) {
         console.error("Error resetting all data:", error);
-        showMessageUI(`ডেটা রিসেট করতে ব্যর্থ: ${error.message}`, "error", 0);
+        showInlineMessageUI(`ডেটা রিসেট করতে ব্যর্থ: ${error.message}`, "error", 0);
         await loadInitialData();
-    } finally { showLoadingUI(false); }
+    } finally {
+        // Nothing needed here now that showLoadingUI is removed
+    }
 }
 
 // --- Attach Event Listeners ---
@@ -1168,6 +1494,8 @@ if (addSocietyMemberBtn) addSocietyMemberBtn.addEventListener('click', handleAdd
 if (addMemberToReportBtn) addMemberToReportBtn.addEventListener('click', handleAddMemberToReport);
 if (clearCurrentReportEntriesBtn) clearCurrentReportEntriesBtn.addEventListener('click', handleClearCurrentReportEntries);
 if (cancelEditReportBtn) cancelEditReportBtn.addEventListener('click', resetEditMode); // New Listener
+if (discardMonthYearBtn) discardMonthYearBtn.addEventListener('click', resetEditMode); // Corrected ID usage and event listener
+
 if (generateReportBtn) generateReportBtn.addEventListener('click', handleGenerateReport);
 if (generateAnnualReportBtn) generateAnnualReportBtn.addEventListener('click', handleGenerateAnnualReport);
 if (downloadPdfBtn) {
@@ -1176,14 +1504,14 @@ if (downloadPdfBtn) {
         const reportActionButtons = document.getElementById('reportActionButtons');
         if (lastRenderedReportData && lastRenderedReportData.type && reportOutputElement) {
             exportToPdf(lastRenderedReportData, reportOutputElement, reportActionButtons, showMessageUI, { jsPDF: window.jspdf, html2canvas: window.html2canvas });
-        } else { showMessageUI("পিডিএফ এক্সপোর্ট করার জন্য প্রথমে একটি রিপোর্ট তৈরি করুন বা লোড করুন।", "info"); }
+        } else { showInlineMessageUI("পিডিএফ এক্সপোর্ট করার জন্য প্রথমে একটি রিপোর্ট তৈরি করুন বা লোad করুন।", "info"); }
     });
 }
 if (exportCsvBtn) {
     exportCsvBtn.addEventListener('click', () => {
         if (lastRenderedReportData && lastRenderedReportData.type) {
             exportToCsv(lastRenderedReportData, showMessageUI);
-        } else { showMessageUI("CSV এক্সপোর্ট করার জন্য প্রথমে একটি রিপোর্ট তৈরি করুন বা লোড করুন।", "info"); }
+        } else { showInlineMessageUI("CSV এক্সপোর্ট করার জন্য প্রথমে একটি রিপোর্ট তৈরি করুন বা লোad করুন।", "info"); }
     });
 }
 if (printReportBtn) printReportBtn.addEventListener('click', handlePrintReport);
@@ -1199,5 +1527,11 @@ if (closeReportViewBtn) {
         if (reportOutputContainer) {
             reportOutputContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+        resetEditMode(); // Call resetEditMode to unlock month/year selectors and show input sections
     });
+}
+
+// Event listener for Batch Add to Report Button
+if (addBatchToReportBtn) {
+    addBatchToReportBtn.addEventListener('click', handleAddBatchToReport);
 }

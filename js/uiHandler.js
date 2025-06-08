@@ -24,14 +24,23 @@ const promptModalCancelBtn = document.getElementById('promptModalCancelBtn');
 
 
 const firebaseConfigSection = document.getElementById('firebaseConfigSection');
-const inputSection = document.getElementById('inputSection');
+// Get specific section elements for toggling
+const mainDashboardSection = document.getElementById('mainDashboardSection'); // This should ALWAYS be visible after Firebase init
+const inputFormsSection = document.getElementById('inputFormsSection'); // This wrapper contains all input forms
+const memberManagementSection = document.getElementById('memberManagementSection');
+const reportCreationSection = document.getElementById('reportCreationSection');
+const singleEntrySection = document.getElementById('singleEntrySection');
+const batchEntrySection = document.getElementById('batchEntrySection');
+const currentReportEntriesPreviewSection = document.getElementById('currentReportEntriesPreviewSection');
+const appSettingsAndDataManagementSection = document.getElementById('appSettingsAndDataManagement'); // Collapsible settings section
+
 
 const ulSocietyMembers = document.getElementById('ulSocietyMembers');
 const memberCountSpan = document.getElementById('memberCount');
 const reportMemberNameSelect = document.getElementById('reportMemberNameSelect');
 const reportMonthSelectUI = document.getElementById('reportMonthSelect');
-const reportYearSelectUI = document.getElementById('reportYearSelect'); // New: Added for report year dropdown
-const annualReportYearSelectUI = document.getElementById('annualReportYearSelect'); // New: Added for annual report year dropdown
+const reportYearSelectUI = document.getElementById('reportYearSelect');
+const annualReportYearSelectUI = document.getElementById('annualReportYearSelect');
 
 
 const ulCurrentReportEntries = document.getElementById('ulCurrentReportEntries');
@@ -48,8 +57,9 @@ const previousReportsListContainer = document.getElementById('previousReportsLis
 const reportOutputDiv = document.getElementById('reportOutput');
 const reportOutputContainer = document.getElementById('reportOutputContainer');
 const reportActionButtonsDiv = document.getElementById('reportActionButtons');
-const additionalReportsSection = document.getElementById('additionalReportsSection');
-const resetDataZoneSection = document.getElementById('resetDataZoneSection');
+const additionalReportsSection = document.getElementById('additionalReportsSection'); // Section containing previous reports and annual report
+
+const inlineMessageDisplay = document.getElementById('inlineMessageDisplay');
 
 
 const banglaMonthsForUI = [
@@ -62,23 +72,23 @@ let messageModalTimeoutId = null;
 // Helper function to format dates in Bengali
 function formatBengaliDateTime(dateObj) {
     if (!dateObj || !(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
-        console.log("formatBengaliDateTime received invalid dateObj:", dateObj); // Logging
+        console.log("formatBengaliDateTime received invalid dateObj:", dateObj);
         return 'N/A';
     }
     try {
         return dateObj.toLocaleString('bn-BD', {
             year: 'numeric', month: 'long', day: 'numeric',
             hour: 'numeric', minute: '2-digit', hour12: true,
-            timeZone: 'Asia/Dhaka' // Consider if this should be dynamic or user's local
+            timeZone: 'Asia/Dhaka'
         });
     } catch (e) {
         console.error("Error formatting date in toLocaleString:", e, dateObj);
-        try { // Fallback formatting
+        try {
             return dateObj.toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric'}) + " " +
                    dateObj.toLocaleTimeString('bn-BD', { hour: 'numeric', minute: '2-digit', hour12: true });
         } catch (e2) {
             console.error("Error in fallback date formatting:", e2, dateObj);
-            return dateObj.toString(); // Absolute fallback
+            return dateObj.toString();
         }
     }
 }
@@ -94,17 +104,61 @@ export function showLoadingUI(show) {
     }
 }
 
+/**
+ * Toggles the visibility of the Firebase configuration section.
+ * This should ONLY affect the Firebase config section itself.
+ * @param {boolean} show - True to show Firebase config, false to hide.
+ */
 export function showFirebaseConfigSectionUI(show) {
-    if (firebaseConfigSection) firebaseConfigSection.classList.toggle('hidden', !show);
-    if (inputSection) inputSection.classList.toggle('hidden', show);
-    if (reportOutputContainer) reportOutputContainer.classList.toggle('hidden', show);
-    if (additionalReportsSection) additionalReportsSection.classList.toggle('hidden', show);
-    if (resetDataZoneSection) resetDataZoneSection.classList.toggle('hidden', show);
+    if (firebaseConfigSection) {
+        firebaseConfigSection.classList.toggle('hidden', !show);
+    }
 }
+
+/**
+ * Toggles the visibility of main input/creation sections.
+ * Does NOT affect the main dashboard, report output, additional reports, or app settings section.
+ * @param {boolean} showForms - True to show input/creation forms, false to hide them.
+ */
+export function toggleInputSectionsVisibility(showForms) {
+    if (inputFormsSection) {
+        inputFormsSection.classList.toggle('hidden', !showForms);
+    }
+}
+
+/**
+ * Toggles the visibility of the report output container.
+ * @param {boolean} show - True to show the report output, false to hide it.
+ */
+export function toggleReportOutputVisibility(show) {
+    if (reportOutputContainer) {
+        reportOutputContainer.classList.toggle('hidden', !show);
+    }
+}
+
+/**
+ * Toggles the visibility of the additional reports section (previous months, annual).
+ * @param {boolean} show - True to show the additional reports section, false to hide it.
+ */
+export function toggleAdditionalReportsVisibility(show) {
+    if (additionalReportsSection) {
+        additionalReportsSection.classList.toggle('hidden', !show);
+    }
+}
+
+/**
+ * Toggles the visibility of the app settings and data management section.
+ * @param {boolean} show - True to show the settings section, false to hide it.
+ */
+export function toggleAppSettingsVisibility(show) {
+    if (appSettingsAndDataManagementSection) {
+        appSettingsAndDataManagementSection.classList.toggle('hidden', !show);
+    }
+}
+
 
 export function showMessageUI(message, type = "info", autoDismissDelay = null) {
     if (!messageModal || !messageModalTitle || !messageModalText || !messageModalCloseBtn) {
-        // Fallback to console if modal elements are not found
         console.warn("Message modal elements not found, falling back to console.", message, type);
         if (type === "error") console.error(message);
         else if (type === "warning") console.warn(message);
@@ -145,7 +199,7 @@ export function showMessageUI(message, type = "info", autoDismissDelay = null) {
     messageModalText.textContent = message;
     messageModalText.className = `bengali theme-modal-text`;
 
-    if (requiresManualCloseLocal || autoDismissDelay === 0) { // autoDismissDelay = 0 means manual close
+    if (requiresManualCloseLocal || autoDismissDelay === 0) {
         messageModalCloseBtn.style.display = 'inline-block';
     } else {
         messageModalCloseBtn.style.display = 'none';
@@ -157,7 +211,6 @@ export function showMessageUI(message, type = "info", autoDismissDelay = null) {
     messageModal.classList.add('active');
 }
 
-// Event listener for the standard message modal close button
 if (messageModalCloseBtn) {
     messageModalCloseBtn.addEventListener('click', () => {
         if (messageModal) {
@@ -169,7 +222,6 @@ if (messageModalCloseBtn) {
         }
     });
 }
-// Close message modal on overlay click
 if (messageModal) {
     messageModal.addEventListener('click', (event) => {
         if (event.target === messageModal) {
@@ -182,14 +234,6 @@ if (messageModal) {
     });
 }
 
-/**
- * Displays a custom confirmation modal.
- * @param {string} title - The title of the confirmation.
- * @param {string} message - The message to display.
- * @param {string} confirmButtonText - Text for the confirm button.
- * @param {string} cancelButtonText - Text for the cancel button.
- * @returns {Promise<boolean>} Resolves to true if confirmed, false if cancelled.
- */
 export function showConfirmModalUI(title, message, confirmButtonText = "নিশ্চিত করুন", cancelButtonText = "বাতিল করুন") {
     return new Promise(resolve => {
         if (!confirmModal || !confirmModalTitle || !confirmModalText || !confirmModalConfirmBtn || !confirmModalCancelBtn) {
@@ -223,7 +267,7 @@ export function showConfirmModalUI(title, message, confirmButtonText = "নি�
 
         const handleOverlayClick = (event) => {
             if (event.target === confirmModal) {
-                handleCancel(); // Treat overlay click as cancel
+                handleCancel();
             }
         };
 
@@ -233,15 +277,6 @@ export function showConfirmModalUI(title, message, confirmButtonText = "নি�
     });
 }
 
-/**
- * Displays a custom prompt modal.
- * @param {string} title - The title of the prompt.
- * @param {string} message - The message to display.
- * @param {string} placeholder - Placeholder text for the input.
- * @param {string} confirmButtonText - Text for the confirm button.
- * @param {string} cancelButtonText - Text for the cancel button.
- * @returns {Promise<string|null>} Resolves to the input value if confirmed, null if cancelled.
- */
 export function showPromptModalUI(title, message, placeholder = "", confirmButtonText = "জমা দিন", cancelButtonText = "বাতিল করুন") {
     return new Promise(resolve => {
         if (!promptModal || !promptModalTitle || !promptModalText || !promptModalInput || !promptModalConfirmBtn || !promptModalCancelBtn) {
@@ -252,13 +287,13 @@ export function showPromptModalUI(title, message, placeholder = "", confirmButto
 
         promptModalTitle.textContent = title;
         promptModalText.textContent = message;
-        promptModalInput.value = ''; // Clear previous input
+        promptModalInput.value = '';
         promptModalInput.placeholder = placeholder;
         promptModalConfirmBtn.textContent = confirmButtonText;
         promptModalCancelBtn.textContent = cancelButtonText;
 
         promptModal.classList.add('active');
-        promptModalInput.focus(); // Focus on input field
+        promptModalInput.focus();
 
         const handleConfirm = () => {
             promptModal.classList.remove('active');
@@ -278,7 +313,7 @@ export function showPromptModalUI(title, message, placeholder = "", confirmButto
 
         const handleOverlayClick = (event) => {
             if (event.target === promptModal) {
-                handleCancel(); // Treat overlay click as cancel
+                handleCancel();
             }
         };
 
@@ -286,33 +321,107 @@ export function showPromptModalUI(title, message, placeholder = "", confirmButto
         promptModalCancelBtn.addEventListener('click', handleCancel);
         promptModal.addEventListener('click', handleOverlayClick);
 
-        // Allow pressing Enter to confirm
         promptModalInput.addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
-                event.preventDefault(); // Prevent default form submission
+                event.preventDefault();
                 handleConfirm();
             }
         });
     });
 }
 
-
-export function renderSocietyMembersListUI(societyMembersMap, handleDeleteCallback, handleViewStatementCallback) {
-    if (!ulSocietyMembers || !memberCountSpan) return;
-    ulSocietyMembers.innerHTML = '';
-    memberCountSpan.textContent = societyMembersMap.size;
-
-    if (societyMembersMap.size === 0) {
-        ulSocietyMembers.innerHTML = '<li class="theme-text-muted bengali">এখনও কোন সদস্য যোগ করা হয়নি।</li>';
+/**
+ * Displays an inline message within the UI.
+ * @param {string} message - The message to display.
+ * @param {string} type - 'success', 'error', 'warning', or 'info'.
+ * @param {number} [autoDismissDelay=2500] - Delay in milliseconds before message dismisses. 0 for manual dismiss.
+ */
+export function showInlineMessageUI(message, type = "info", autoDismissDelay = null) {
+    if (!inlineMessageDisplay) {
+        console.warn("inlineMessageDisplay element not found. Cannot show inline message.");
         return;
     }
+    const messageParagraph = inlineMessageDisplay.querySelector('p');
+    if (!messageParagraph) return;
+
+    if (inlineMessageDisplay.timeoutId) {
+        clearTimeout(inlineMessageDisplay.timeoutId);
+    }
+
+    messageParagraph.textContent = message;
+
+    messageParagraph.className = 'py-1 px-3 rounded-full shadow-md bengali ';
+    if (type === 'success') {
+        messageParagraph.classList.add('bg-green-100', 'text-green-800');
+    } else if (type === 'error') {
+        messageParagraph.classList.add('bg-red-100', 'text-red-800');
+    } else if (type === 'warning') {
+        messageParagraph.classList.add('bg-yellow-100', 'text-yellow-800');
+    } else {
+        messageParagraph.classList.add('bg-blue-100', 'text-blue-800');
+    }
+
+    inlineMessageDisplay.classList.remove('opacity-0', 'invisible');
+    inlineMessageDisplay.classList.add('opacity-100', 'visible');
+
+    if (autoDismissDelay !== 0) {
+        inlineMessageDisplay.timeoutId = setTimeout(() => {
+            inlineMessageDisplay.classList.remove('opacity-100', 'visible');
+            inlineMessageDisplay.classList.add('opacity-0', 'invisible');
+        }, autoDismissDelay || 2500);
+    }
+}
+
+
+/**
+ * Renders the list of society members, with optional search filtering and batch selection checkboxes.
+ * @param {Map<string, string>} societyMembersMap - Map of member IDs to member names.
+ * @param {function} handleDeleteCallback - Callback for deleting a member.
+ * @param {function} handleViewStatementCallback - Callback for viewing a member's statement.
+ * @param {string} [searchTerm=''] - Optional search term to filter members.
+ * @param {Map<string, string>} selectedBatchMembersMap - Map of currently selected members for batch operations.
+ * @param {string|null} selectedSingleMemberId - ID of the member selected in the single entry dropdown, if any.
+ */
+export function renderSocietyMembersListUI(societyMembersMap, handleDeleteCallback, handleViewStatementCallback, searchTerm = '', selectedBatchMembersMap, selectedSingleMemberId = null) {
+    if (!ulSocietyMembers || !memberCountSpan) return;
+    ulSocietyMembers.innerHTML = '';
 
     const fragment = document.createDocumentFragment();
     const sortedMembers = [...societyMembersMap.entries()].sort((a, b) => a[1].localeCompare(b[1], 'bn', { sensitivity: 'base' }));
 
+    let filteredCount = 0;
+
     sortedMembers.forEach(([id, name]) => {
+        if (searchTerm && !name.toLowerCase().includes(searchTerm.toLowerCase())) {
+            return;
+        }
+
+        filteredCount++;
         const li = document.createElement('li');
         li.className = "flex justify-between items-center py-1";
+
+        const checkboxContainer = document.createElement('div');
+        checkboxContainer.className = "flex items-center flex-shrink-0 mr-2";
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'member-select-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500';
+        checkbox.value = id;
+        checkbox.dataset.memberName = name;
+        checkbox.checked = selectedBatchMembersMap.has(id);
+
+        // Disable checkbox if this member is currently selected in the single entry dropdown
+        if (selectedSingleMemberId && selectedSingleMemberId === id) {
+            checkbox.disabled = true;
+            checkbox.checked = false; // Ensure it's not checked if disabled
+            selectedBatchMembersMap.delete(id); // Remove from batch selection if it's the single selected one
+        } else {
+            checkbox.disabled = false;
+        }
+
+        checkboxContainer.appendChild(checkbox);
+        li.appendChild(checkboxContainer);
+
 
         const nameSpan = document.createElement('span');
         nameSpan.textContent = name;
@@ -323,14 +432,14 @@ export function renderSocietyMembersListUI(societyMembersMap, handleDeleteCallba
         buttonsDiv.className = "flex items-center space-x-2";
 
         const viewStatementButton = document.createElement('button');
-        viewStatementButton.innerHTML = '📄 বিবৃতি'; // Document emoji
+        viewStatementButton.innerHTML = '📄 বিবৃতি';
         viewStatementButton.title = "সদস্যের বিবৃতি দেখুন";
         viewStatementButton.className = "bengali text-xs px-2 py-1 rounded border theme-text-info theme-border-color hover:bg-blue-50";
         viewStatementButton.onclick = () => handleViewStatementCallback(id, name);
         buttonsDiv.appendChild(viewStatementButton);
 
         const deleteButton = document.createElement('button');
-        deleteButton.innerHTML = '🗑️ মুছুন'; // Trash can emoji
+        deleteButton.innerHTML = '🗑️ মুছুন';
         deleteButton.title = "সদস্য মুছুন";
         deleteButton.className = "bengali text-xs px-2 py-1 rounded border theme-text-danger theme-border-color hover:bg-red-50";
         deleteButton.onclick = () => handleDeleteCallback(id, name);
@@ -339,7 +448,13 @@ export function renderSocietyMembersListUI(societyMembersMap, handleDeleteCallba
         li.appendChild(buttonsDiv);
         fragment.appendChild(li);
     });
+
     ulSocietyMembers.appendChild(fragment);
+    memberCountSpan.textContent = filteredCount;
+
+    if (filteredCount === 0) {
+        ulSocietyMembers.innerHTML = '<li class="theme-text-muted bengali text-center py-4">কোনো সদস্য খুঁজে পাওয়া হয়নি।</li>';
+    }
 }
 
 export function populateReportEntryMemberDropdownUI(fullSocietyMembersMap, currentReportEntryMemberIds = []) {
@@ -439,12 +554,12 @@ export function renderCurrentReportEntriesPreviewUI(currentReportEntriesArray, h
         entryText.textContent = `${index + 1}. ${entry.memberName} (সঞ্চয় জমা: ${Number(entry.savings || 0).toFixed(2)}, সঞ্চয় উত্তোলন: ${Number(entry.savingsWithdrawal || 0).toFixed(2)}, ঋণ বিতরণ: ${Number(entry.loanDisbursed || 0).toFixed(2)}, ঋণ পরিশোধ: ${Number(entry.loanRepayment || 0).toFixed(2)})`;
         li.appendChild(entryText);
 
-        const deleteEntryButton = document.createElement('button');
-        deleteEntryButton.innerHTML = '🗑️ মুছুন'; // Trash can emoji for delete
-        deleteEntryButton.title = "এন্ট্রি মুছুন";
-        deleteEntryButton.className = "text-xs ml-2 px-1 rounded border theme-text-danger theme-border-color hover:bg-red-50";
-        deleteEntryButton.onclick = () => handleDeleteSingleEntryCallback(index);
-        li.appendChild(deleteEntryButton);
+        const deleteButton = document.createElement('button');
+        deleteButton.innerHTML = '🗑️ মুছুন';
+        deleteButton.title = "এন্ট্রি মুছুন";
+        deleteButton.className = "text-xs ml-2 px-1 rounded border theme-text-danger theme-border-color hover:bg-red-50";
+        deleteButton.onclick = () => handleDeleteSingleEntryCallback(index);
+        li.appendChild(deleteButton);
 
         fragment.appendChild(li);
     });
@@ -502,7 +617,6 @@ export function renderReportToHtmlUI(
         return "";
     }
 
-    // Logging the received dates
     console.log("renderReportToHtmlUI received createdAtDate:", createdAtDate, "Type:", typeof createdAtDate, "IsDate:", createdAtDate instanceof Date);
     console.log("renderReportToHtmlUI received updatedAtDate:", updatedAtDate, "Type:", typeof updatedAtDate, "IsDate:", updatedAtDate instanceof Date);
 
@@ -510,29 +624,26 @@ export function renderReportToHtmlUI(
 
     const associationName = (typeof assocNameParam === 'string' && assocNameParam.trim() !== '') ? assocNameParam : "আল-বারাকাহ সহায়ক সমিতি";
     const reportMonth = (typeof rptMonthParam === 'string' && rptMonthParam.trim() !== '') ? rptMonthParam : (document.getElementById('reportMonthSelect')?.value || "মাস");
-    const reportYear = (typeof rptYearParam === 'string' || typeof rptYearParam === 'number') && String(rptYearParam).trim() !== '' ? String(rptYearParam) : (document.getElementById('reportYearSelect')?.value || "বছর"); // Updated ID here
+    const reportYear = (typeof rptYearParam === 'string' || typeof rptYearParam === 'number') && String(rptYearParam).trim() !== '' ? String(rptYearParam) : (document.getElementById('reportYearSelect')?.value || "বছর");
 
     html += `<h2 class="text-xl md:text-2xl font-bold text-center mb-1 bengali theme-text-h1">${associationName} : মাস ${reportMonth} (${reportYear})</h2>`;
-
-    let reportDateInfoHtml = '<div class="text-xs theme-text-muted mt-0 mb-3 text-center bengali">';
+    html += `<div class="text-xs theme-text-muted mt-0 mb-3 text-center bengali">`; // Start of date info div
     if (createdAtDate && createdAtDate instanceof Date && !isNaN(createdAtDate.getTime())) {
-        reportDateInfoHtml += `<p>রিপোর্ট তৈরির তারিখ: ${formatBengaliDateTime(createdAtDate)}</p>`;
+        html += `<p>রিপোর্ট তৈরির তারিখ: ${formatBengaliDateTime(createdAtDate)}</p>`;
     } else {
         console.warn("createdAtDate is not a valid Date object for rendering in HTML report:", createdAtDate);
     }
 
     if (updatedAtDate && updatedAtDate instanceof Date && !isNaN(updatedAtDate.getTime())) {
-        // Only show "Last edited" if it's significantly different from createdAtDate
-        if (createdAtDate && createdAtDate instanceof Date && !isNaN(createdAtDate.getTime()) && Math.abs(updatedAtDate.getTime() - createdAtDate.getTime()) > 5000) { // 5 seconds threshold
-            reportDateInfoHtml += `<p>সর্বশেষ সম্পাদনার তারিখ: ${formatBengaliDateTime(updatedAtDate)}</p>`;
-        } else if (!createdAtDate && updatedAtDate) { // If only updatedAt exists (e.g. if createdAt was somehow lost)
-             reportDateInfoHtml += `<p>আপডেট তারিখ: ${formatBengaliDateTime(updatedAtDate)}</p>`;
+        if (createdAtDate && createdAtDate instanceof Date && !isNaN(createdAtDate.getTime()) && Math.abs(updatedAtDate.getTime() - createdAtDate.getTime()) > 5000) {
+            html += `<p>সর্বশেষ সম্পাদনার তারিখ: ${formatBengaliDateTime(updatedAtDate)}</p>`;
+        } else if (!createdAtDate && updatedAtDate) {
+             html += `<p>আপডেট তারিখ: ${formatBengaliDateTime(updatedAtDate)}</p>`;
         }
     } else {
          if (updatedAtDate) console.warn("updatedAtDate is not a valid Date object for rendering in HTML report:", updatedAtDate);
     }
-    reportDateInfoHtml += '</div>';
-    html += reportDateInfoHtml;
+    html += `</div>`; // End of date info div
 
 
     html += '<table class="min-w-full table-bordered bg-white text-sm shadow-md">';
@@ -552,7 +663,7 @@ export function renderReportToHtmlUI(
     } else {
         entriesToRender.forEach((entry, index) => {
             const isMemberActive = societyMembersMap.has(entry.memberId);
-            const rowClass = isMemberActive ? "hover:bg-gray-50" : "bg-gray-100 text-gray-400 italic"; // Grey out if member deleted
+            const rowClass = isMemberActive ? "hover:bg-gray-50" : "bg-gray-100 text-gray-400 italic";
             const commentText = isMemberActive ? "" : "সদস্য মুছে ফেলা হয়েছে";
 
             html += `<tr class="${rowClass}">
@@ -600,7 +711,6 @@ export function renderReportToHtmlUI(
              </tr>`;
     html += '</tfoot></table>';
     reportOutputDiv.innerHTML = html;
-    return html;
 }
 
 export function populatePreviousReportsDropdownUI(reportsArray, loadCallback, editCallback, deleteCallback) {
@@ -633,14 +743,13 @@ export function populatePreviousReportsDropdownUI(reportsArray, loadCallback, ed
         li.setAttribute('data-report-id', report.id);
 
         const reportInfoSpan = document.createElement('span');
-        // Ensure report.createdAt is a JS Date object before formatting
         let createdDate = null;
-        if (report.createdAt?.toDate) { // Firestore Timestamp
+        if (report.createdAt?.toDate) {
             createdDate = report.createdAt.toDate();
-        } else if (report.createdAt instanceof Date) { // Already a JS Date
+        } else if (report.createdAt instanceof Date) {
             createdDate = report.createdAt;
         }
-        const dateString = createdDate ? formatBengaliDateTime(createdDate).split(',')[0] : 'তারিখ নেই'; // Show only date part
+        const dateString = createdDate ? formatBengaliDateTime(createdDate).split(',')[0] : 'তারিখ নেই';
 
         reportInfoSpan.textContent = `${report.month || 'মাস অজানা'} ${report.year || 'বছর অজানা'} (তৈরিঃ ${dateString})`;
         reportInfoSpan.className = 'bengali cursor-pointer hover:underline theme-text-link flex-grow mr-2';
@@ -651,7 +760,7 @@ export function populatePreviousReportsDropdownUI(reportsArray, loadCallback, ed
         buttonsDiv.className = 'flex space-x-1 items-center flex-shrink-0';
 
         const editButton = document.createElement('button');
-        editButton.innerHTML = '✏️'; // Pencil emoji
+        editButton.innerHTML = '✏️';
         editButton.title = "সম্পাদনা করুন";
         editButton.className = "bengali text-xs p-1 rounded border theme-button-neutral hover:bg-gray-100";
         editButton.onclick = (e) => {
@@ -661,7 +770,7 @@ export function populatePreviousReportsDropdownUI(reportsArray, loadCallback, ed
         buttonsDiv.appendChild(editButton);
 
         const deleteButton = document.createElement('button');
-        deleteButton.innerHTML = '🗑️'; // Trash can emoji
+        deleteButton.innerHTML = '🗑️';
         deleteButton.title = "মুছে ফেলুন";
         deleteButton.className = "bengali text-xs p-1 rounded border theme-button-danger hover:bg-red-100";
         deleteButton.onclick = (e) => {
@@ -689,7 +798,7 @@ export function renderAnnualReportUI(year, monthlyData, yearlyTotals, startOfYea
         return;
     }
 
-    let html = `<h2 class="text-xl md:text-2xl font-bold text-center mb-1 bengali theme-text-h1">${year} সালের বার্ষিক রিপোর্ট</h2>`;
+    let html = `<h2 class="text-xl md:text-2xl font-bold text-center mb-1 bengali theme-text-h1">${year} সালের বার্ষিক রিপোর্ট তৈরি হয়েছে।</h2>`;
     html += `<div class="text-xs theme-text-muted mt-0 mb-3 text-center bengali"><p>রিপোর্ট তৈরির তারিখ: ${formatBengaliDateTime(new Date())}</p></div>`;
 
 
@@ -724,7 +833,7 @@ export function renderAnnualReportUI(year, monthlyData, yearlyTotals, startOfYea
     html += '<tbody class="bg-white divide-y theme-divide-color">';
 
     if (!monthlyData || monthlyData.length === 0) {
-        html += `<tr><td colspan="7" class="text-center py-4 theme-text-muted bengali">${year} সালের জন্য কোনও মাসিক রিপোর্ট পাওয়া যায়নি।</td></tr>`;
+        html += `<tr><td colspan="7" class="text-center py-4 theme-text-muted bengali">${year} সালের জন্য কোনও মাসিক রিপোর্ট পাওয়া হয়নি।</td></tr>`;
     } else {
         monthlyData.sort((a, b) => banglaMonthsForUI.indexOf(a.month) - banglaMonthsForUI.indexOf(b.month));
         monthlyData.forEach(data => {

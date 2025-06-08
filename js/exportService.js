@@ -13,15 +13,15 @@ function escapeCsvCell(cellData) {
 
 function formatMonthlyReportToCsv(reportDetails) {
     const { data, titleInfo } = reportDetails;
-    const monthlyTotals = data.monthlyTotals || { 
+    const monthlyTotals = data.monthlyTotals || {
         savingsDeposit: 0, savingsWithdrawal: 0, savings: 0, // savings is net
-        loanDisbursed: 0, loanRepaid: 0, netLoanChange: 0 
+        loanDisbursed: 0, loanRepaid: 0, netLoanChange: 0
     };
     const entries = data.entries || [];
     const reportCumulativeTotals = data.cumulativeTotalsAtEndOfReport;
     const { associationName, month, year } = titleInfo;
 
-    let csvContent = "\uFEFF"; 
+    let csvContent = "\uFEFF";
     csvContent += `${escapeCsvCell(associationName || SOCIETY_NAME_FOR_EXPORT)} : মাস ${escapeCsvCell(month)} (${escapeCsvCell(year)})` + '\r\n';
     csvContent += '\r\n';
     csvContent += "ক্রমিক নং,সদস্যের নাম,সঞ্চয় জমা (টাকা),সঞ্চয় উত্তোলন (টাকা),ঋণ বিতরণ (টাকা),ঋণ পরিশোধ (টাকা),মন্তব্য/স্বাক্ষর\r\n";
@@ -34,7 +34,7 @@ function formatMonthlyReportToCsv(reportDetails) {
             Number(entry.savingsWithdrawal || 0).toFixed(2),
             Number(entry.loanDisbursed || 0).toFixed(2),
             Number(entry.loanRepayment || 0).toFixed(2),
-            "" 
+            ""
         ];
         csvContent += row.map(escapeCsvCell).join(',') + '\r\n';
     });
@@ -43,8 +43,8 @@ function formatMonthlyReportToCsv(reportDetails) {
     csvContent += ` , ,নেট সঞ্চয়:,${Number(monthlyTotals.savings || 0).toFixed(2)},নেট ঋণ:,${Number(monthlyTotals.netLoanChange || 0).toFixed(2)},\r\n`;
 
     if (reportCumulativeTotals) {
-        csvContent += ` , , , , ,সমিতির মোট সঞ্চয় (ক্রমসঞ্চিত):,${Number(reportCumulativeTotals.savings || 0).toFixed(2)}\r\n`; 
-        csvContent += ` , , , , ,সমিতির মোট ঋণ (ক্রমসঞ্চিত):,${Number(reportCumulativeTotals.loan || 0).toFixed(2)}\r\n`;   
+        csvContent += ` , , , , ,সমিতির মোট সঞ্চয় (ক্রমসঞ্চিত):,${Number(reportCumulativeTotals.savings || 0).toFixed(2)}\r\n`;
+        csvContent += ` , , , , ,সমিতির মোট ঋণ (ক্রমসঞ্চিত):,${Number(reportCumulativeTotals.loan || 0).toFixed(2)}\r\n`;
     }
     return csvContent;
 }
@@ -113,7 +113,7 @@ function formatAnnualReportToCsv(reportDetails) {
 
 function formatMemberStatementToCsv(reportDetails) {
     const { data, titleInfo } = reportDetails;
-    const { memberName, transactions } = data; 
+    const { memberName, transactions } = data;
     const { associationName } = titleInfo;
 
     let csvContent = "\uFEFF";
@@ -195,7 +195,7 @@ export function exportToCsv(reportData, showMessageCallback) {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(url); 
+            URL.revokeObjectURL(url);
             if (showMessageCallback) showMessageCallback("CSV ফাইল সফলভাবে ডাউনলোড হয়েছে!", "success");
         } else {
             if (showMessageCallback) showMessageCallback("আপনার ব্রাউজার সরাসরি ফাইল ডাউনলোড সমর্থন করে না।", "warning", 0);
@@ -208,8 +208,8 @@ export function exportToCsv(reportData, showMessageCallback) {
 
 // --- PDF Export Function ---
 export async function exportToPdf(lastRenderedReportData, reportOutputElement, reportActionButtonsElement, showMessageCallback, globalLibraries) {
-    const { jsPDF } = globalLibraries.jsPDF; 
-    const { html2canvas } = globalLibraries; 
+    const { jsPDF } = globalLibraries.jsPDF;
+    const { html2canvas } = globalLibraries;
 
     if (!reportOutputElement || !reportOutputElement.innerHTML.includes("<table")) {
         if (showMessageCallback) showMessageCallback("পিডিএফ তৈরি করার জন্য প্রথমে একটি রিপোর্ট প্রদর্শন করুন।", "error", 0);
@@ -223,7 +223,7 @@ export async function exportToPdf(lastRenderedReportData, reportOutputElement, r
         reportActionButtonsElement.classList.add('hidden');
     }
 
-    let fileName = "Report.pdf"; 
+    let fileName = "Report.pdf";
     if (lastRenderedReportData && lastRenderedReportData.type && lastRenderedReportData.titleInfo) {
         const { type, titleInfo } = lastRenderedReportData;
         
@@ -232,7 +232,7 @@ export async function exportToPdf(lastRenderedReportData, reportOutputElement, r
         const yearStr = typeof titleInfo.year === 'string' || typeof titleInfo.year === 'number' ? String(titleInfo.year) : "UnknownYear";
         const memberNameStr = typeof titleInfo.memberName === 'string' ? titleInfo.memberName : "সদস্য";
 
-        const assoc = associationNameStr.replace(/\s+/g, '_'); 
+        const assoc = associationNameStr.replace(/\s+/g, '_');
 
         if (type === 'monthly') {
             fileName = `${assoc}_${monthStr}_${yearStr}_মাসিক_রিপোর্ট.pdf`;
@@ -252,12 +252,15 @@ export async function exportToPdf(lastRenderedReportData, reportOutputElement, r
             logging: false,
             allowTaint: true,
             onclone: (documentClone) => {
-                const reportClone = documentClone.getElementById(reportOutputElement.id); 
+                const reportClone = documentClone.getElementById(reportOutputElement.id);
                 if (reportClone) {
+                    // Apply Bengali font
                     reportClone.style.fontFamily = "'Hind Siliguri', Arial, sans-serif";
                     documentClone.querySelectorAll(`#${reportOutputElement.id} .bengali, #${reportOutputElement.id} table th, #${reportOutputElement.id} table td, #${reportOutputElement.id} h2, #${reportOutputElement.id} h3, #${reportOutputElement.id} p`).forEach(el => {
                         el.style.fontFamily = "'Hind Siliguri', Arial, sans-serif";
                     });
+
+                    // Ensure table borders are visible for print
                     documentClone.querySelectorAll(`#${reportOutputElement.id} table, #${reportOutputElement.id} th, #${reportOutputElement.id} td`).forEach(el => {
                         el.style.border = '1px solid #ccc';
                     });
@@ -265,12 +268,24 @@ export async function exportToPdf(lastRenderedReportData, reportOutputElement, r
                         el.style.backgroundColor = '#f0f0f0';
                         el.style.color = '#333';
                     });
+
+                    // NEW: Temporarily remove top margin/padding from the cloned report output element
+                    // and its direct children to ensure content starts from the top.
+                    reportClone.style.marginTop = '0px';
+                    reportClone.style.paddingTop = '0px';
+                    // Also check immediate children that might have top margins
+                    Array.from(reportClone.children).forEach(child => {
+                        if (child instanceof HTMLElement) { // Ensure it's an HTML element
+                            child.style.marginTop = '0px';
+                            child.style.paddingTop = '0px';
+                        }
+                    });
                 }
             }
         });
 
         const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({ 
+        const pdf = new jsPDF({
             orientation: 'p',
             unit: 'mm',
             format: 'a4'
@@ -278,20 +293,22 @@ export async function exportToPdf(lastRenderedReportData, reportOutputElement, r
 
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
+        const margin = 10; // Standard margin
 
         const imgProps = pdf.getImageProperties(imgData);
         const aspectRatio = imgProps.width / imgProps.height;
         let newImgWidth = pdfWidth - (2 * margin);
         let newImgHeight = newImgWidth / aspectRatio;
 
+        // If the image is taller than the page height, scale it down to fit
         if (newImgHeight > (pdfHeight - (2 * margin))) {
             newImgHeight = pdfHeight - (2 * margin);
             newImgWidth = newImgHeight * aspectRatio;
         }
 
-        const x = margin + ((pdfWidth - (2 * margin)) - newImgWidth) / 2;
-        const y = margin;
+        // Position the image at the top-left of the usable area (after margin)
+        const x = margin;
+        const y = margin; // Start from the top margin
 
         pdf.addImage(imgData, 'PNG', x, y, newImgWidth, newImgHeight);
 
@@ -336,7 +353,7 @@ export function exportAllDataToJson(allData, showMessageCallback, appInstanceId)
                 } catch (e) { return value; } // Fallback if conversion fails
             }
             return value;
-        }, 2); 
+        }, 2);
 
         const blob = new Blob([jsonString], { type: "application/json;charset=utf-8;" });
         
@@ -353,7 +370,7 @@ export function exportAllDataToJson(allData, showMessageCallback, appInstanceId)
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(url); 
+            URL.revokeObjectURL(url);
             if (showMessageCallback) showMessageCallback("সকল ডেটা সফলভাবে JSON ফাইলে এক্সপোর্ট হয়েছে!", "success");
         } else {
             if (showMessageCallback) showMessageCallback("আপনার ব্রাউজার সরাসরি ফাইল ডাউনলোড সমর্থন করে না।", "warning", 0);
