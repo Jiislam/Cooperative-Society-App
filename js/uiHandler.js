@@ -1,5 +1,9 @@
 // js/uiHandler.js
 
+// --- NEW ---
+// Global variable to hold the chart instance so it can be destroyed
+let financialChartInstance = null;
+
 // DOM Elements
 const loadingModal = document.getElementById('loadingModal');
 const messageModal = document.getElementById('messageModal');
@@ -68,6 +72,120 @@ const banglaMonthsForUI = [
 ];
 
 let messageModalTimeoutId = null;
+
+// --- REWRITTEN & CORRECTED CHART RENDERING FUNCTION ---
+/**
+ * Renders a financial chart based on the specified type and data.
+ * This function can now render bar/line combo, pie, or doughnut charts.
+ * @param {string | null} chartType - The type of chart to render ('bar', 'pie', 'doughnut') or null to clear.
+ * @param {number} year - The year the data represents.
+ * @param {object} chartData - The data object, which varies based on chart type.
+ * @param {string} [pieDataType='savings'] - The type of data for pie/doughnut charts ('savings' or 'loan').
+ */
+export function renderFinancialChartUI(chartType, year, chartData, pieDataType = 'savings') {
+    const ctx = document.getElementById('financialChart');
+    if (!ctx) {
+        console.error("Financial chart canvas element not found.");
+        return;
+    }
+
+    // If a chart instance already exists, destroy it before creating a new one
+    if (financialChartInstance) {
+        financialChartInstance.destroy();
+    }
+
+    // If chartType is null, we just clear the canvas and exit.
+    if (!chartType || !chartData) {
+        return;
+    }
+    
+    let config;
+
+    // --- Configuration for Bar/Line Chart ---
+    if (chartType === 'bar') {
+        const { monthlyData } = chartData;
+        monthlyData.sort((a, b) => banglaMonthsForUI.indexOf(a.month) - banglaMonthsForUI.indexOf(b.month));
+        const labels = monthlyData.map(d => d.month);
+
+        config = {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { type: 'bar', label: 'মাসিক সঞ্চয় জমা', data: monthlyData.map(d => d.monthlySavingsDeposit), backgroundColor: 'rgba(75, 192, 192, 0.6)', yAxisID: 'y' },
+                    { type: 'bar', label: 'মাসিক ঋণ বিতরণ', data: monthlyData.map(d => d.monthlyLoanDisbursed), backgroundColor: 'rgba(255, 99, 132, 0.6)', yAxisID: 'y' },
+                    { type: 'line', label: 'ক্রমসঞ্চিত সঞ্চয়', data: monthlyData.map(d => d.cumulativeSavingsAtEndOfMonth), borderColor: 'rgb(75, 192, 192)', fill: true, tension: 0.2, yAxisID: 'y1' },
+                    { type: 'line', label: 'ক্রমসঞ্চিত ঋণ', data: monthlyData.map(d => d.cumulativeLoanAtEndOfMonth), borderColor: 'rgb(255, 99, 132)', fill: true, tension: 0.2, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    title: { display: true, text: `${year} সালের আর্থিক পরিসংখ্যান`, font: { size: 18, family: "'Hind Siliguri', sans-serif" }, padding: { top: 10, bottom: 20 } },
+                    tooltip: { callbacks: { label: (c) => `${c.dataset.label || ''}: ${new Intl.NumberFormat('bn-BD').format(c.parsed.y)} টাকা` } }
+                },
+                scales: {
+                    x: { ticks: { font: { family: "'Hind Siliguri', sans-serif" } } },
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'মাসিক লেনদেন (টাকা)', font: { family: "'Hind Siliguri', sans-serif" } } },
+                    y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'ক্রমসঞ্চিত মোট (টাকা)', font: { family: "'Hind Siliguri', sans-serif" } }, grid: { drawOnChartArea: false } }
+                }
+            }
+        };
+    }
+    // --- Configuration for Pie/Doughnut Chart ---
+    else if (chartType === 'pie' || chartType === 'doughnut') {
+        const { members, totals } = chartData;
+        const isSavings = pieDataType === 'savings';
+        
+        const dataSet = isSavings ? members.map(m => m.totalSavings) : members.map(m => m.totalLoan);
+        const totalValue = isSavings ? totals.savings : totals.loan;
+        const titleText = isSavings ? `${year} সালের সঞ্চয় বিতরণ` : `${year} সালের ঋণ বিতরণ`;
+        const labels = members.map(m => m.memberName);
+
+        config = {
+            type: chartType,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'পরিমাণ (টাকা)',
+                    data: dataSet,
+                    backgroundColor: [ // Add more colors if you have many members
+                        'rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
+                        'rgba(199, 199, 199, 0.8)', 'rgba(83, 102, 255, 0.8)', 'rgba(40, 159, 64, 0.8)',
+                        'rgba(255, 100, 100, 0.8)'
+                    ],
+                    borderColor: '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: titleText, font: { size: 18, family: "'Hind Siliguri', sans-serif" }, padding: { top: 10, bottom: 20 } },
+                    legend: { position: 'top', labels: { font: { family: "'Hind Siliguri', sans-serif" } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) { label += ': '; }
+                                const value = context.parsed;
+                                const percentage = totalValue > 0 ? ((value / totalValue) * 100).toFixed(2) : 0;
+                                label += `${new Intl.NumberFormat('bn-BD').format(value)} টাকা (${percentage}%)`;
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    if (config) {
+        financialChartInstance = new Chart(ctx, config);
+    }
+}
+
 
 // Helper function to format dates in Bengali
 function formatBengaliDateTime(dateObj) {
@@ -381,8 +499,9 @@ export function showInlineMessageUI(message, type = "info", autoDismissDelay = n
  * @param {string} [searchTerm=''] - Optional search term to filter members.
  * @param {Map<string, string>} selectedBatchMembersMap - Map of currently selected members for batch operations.
  * @param {string|null} selectedSingleMemberId - ID of the member selected in the single entry dropdown, if any.
+ * @param {string[]} [membersInCurrentReport=[]] - An array of member IDs already in the current report draft.
  */
-export function renderSocietyMembersListUI(societyMembersMap, handleDeleteCallback, handleViewStatementCallback, searchTerm = '', selectedBatchMembersMap, selectedSingleMemberId = null) {
+export function renderSocietyMembersListUI(societyMembersMap, handleDeleteCallback, handleViewStatementCallback, searchTerm = '', selectedBatchMembersMap, selectedSingleMemberId = null, membersInCurrentReport = []) {
     if (!ulSocietyMembers || !memberCountSpan) return;
     ulSocietyMembers.innerHTML = '';
 
@@ -410,11 +529,13 @@ export function renderSocietyMembersListUI(societyMembersMap, handleDeleteCallba
         checkbox.dataset.memberName = name;
         checkbox.checked = selectedBatchMembersMap.has(id);
 
-        // Disable checkbox if this member is currently selected in the single entry dropdown
-        if (selectedSingleMemberId && selectedSingleMemberId === id) {
+        const isAlreadyInReport = membersInCurrentReport.includes(id);
+
+        // Disable checkbox if this member is selected in the single entry dropdown OR already in the report.
+        if ((selectedSingleMemberId && selectedSingleMemberId === id) || isAlreadyInReport) {
             checkbox.disabled = true;
             checkbox.checked = false; // Ensure it's not checked if disabled
-            selectedBatchMembersMap.delete(id); // Remove from batch selection if it's the single selected one
+            selectedBatchMembersMap.delete(id); // Remove from batch selection if it becomes disabled
         } else {
             checkbox.disabled = false;
         }
@@ -432,7 +553,7 @@ export function renderSocietyMembersListUI(societyMembersMap, handleDeleteCallba
         buttonsDiv.className = "flex items-center space-x-2";
 
         const viewStatementButton = document.createElement('button');
-        viewStatementButton.innerHTML = '📄 বিবৃতি';
+        viewStatementButton.innerHTML = '📄বিবৃতি';
         viewStatementButton.title = "সদস্যের বিবৃতি দেখুন";
         viewStatementButton.className = "bengali text-xs px-2 py-1 rounded border theme-text-info theme-border-color hover:bg-blue-50";
         viewStatementButton.onclick = () => handleViewStatementCallback(id, name);
@@ -954,4 +1075,4 @@ export function toggleReportActionButtonsUI(show) {
     } else {
         console.warn("reportActionButtonsDiv not found in toggleReportActionButtonsUI");
     }
-}
+};

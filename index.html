@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>আল-বারাকাহ সহায়ক সমিতি</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;700&display=swap" rel="stylesheet">
@@ -16,7 +17,6 @@
             <header class="mb-8 text-center no-print">
                 <div class="flex justify-between items-center mb-4">
                     <div></div>
-                    <!-- Added ID to the main title and cursor-pointer class -->
                     <h1 id="mainAppTitle" class="text-2xl md:text-3xl font-bold bengali theme-text-h1 cursor-pointer">আল-বারাকাহ সহায়ক সমিতি</h1>
                     <div class="theme-selector-container">
                         <label for="themeSelector" class="sr-only bengali">থিম নির্বাচন করুন</label>
@@ -51,7 +51,6 @@
                     <p class="text-xs mt-2 bengali theme-text-muted">আপনার কনফিগ এই কম্পিউটারে সুবিধার জন্য আপনার ব্রাউজারের লোকাল স্টোরেজে সংরক্ষিত হয়। এটি এই পৃষ্ঠা দ্বারা অন্য কোথাও পাঠানো হয় না, শুধুমাত্র আপনার Firebase প্রকল্পের সাথে সংযোগ করতে ব্যবহৃত হয়।</p>
                 </section>
 
-                <!-- Main Dashboard Section - Now outside the general 'inputSection' wrapper -->
                 <section id="mainDashboardSection" class="my-6 p-4 rounded-md theme-section-padding theme-section-bg theme-border-color hidden">
                     <h2 class="text-xl font-semibold mb-3 bengali theme-text-h2">সমিতির সামগ্রিক আর্থিক অবস্থা</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -78,7 +77,6 @@
                     </div>
                 </section>
 
-                <!-- All other input sections are now grouped under a new 'inputFormsSection' and will be toggled -->
                 <section id="inputFormsSection" class="space-y-6 no-print hidden">
                     <div id="memberManagementSection" class="theme-section-padding">
                         <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">সমিতির সদস্য এডিট করুন</h2>
@@ -113,13 +111,11 @@
                                 </select>
                             </div>
                         </div>
-                        <!-- Discard button for month/year lock, hidden by default -->
                         <div class="mt-3 text-right">
                             <button id="discardMonthYearBtn" class="font-semibold py-1 px-3 rounded-md shadow bengali theme-button-neutral hidden">মাস/সাল আনলক করুন</button>
                         </div>
                     </div>
 
-                    <!-- Single Entry Section -->
                     <div id="singleEntrySection" class="theme-section-padding">
                         <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">বর্তমান রিপোর্টে সদস্য এন্ট্রি যুক্ত করুন (একক)</h2>
                         <div class="relative grid grid-cols-1 md:grid-cols-12 gap-2 items-end p-3 border rounded-md theme-border-color">
@@ -147,14 +143,9 @@
                             <button id="addMemberToReportBtn" class="md:col-span-2 font-semibold py-2 px-3 rounded-md shadow h-10 mt-1 md:mt-0 bengali theme-button-primary">
                                 রিপোর্টে যুক্ত করুন
                             </button>
-                            <!-- Inline message display area - MOVED OUTSIDE singleEntrySection -->
-                            <!-- <div id="inlineMessageDisplay" class="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300">
-                                <p class="bg-green-100 text-green-800 text-sm py-1 px-3 rounded-full shadow-md bengali"></p>
-                            </div> -->
                         </div>
                     </div>
 
-                    <!-- Batch Entry Section (collapsible, placed below single entry) -->
                     <details id="batchEntrySection" class="mt-6 p-3 border rounded-md theme-border-color theme-section-bg-alt">
                         <summary class="text-md font-semibold bengali theme-text-h4 cursor-pointer">নির্বাচিত সদস্যদের জন্য ব্যাচ এন্ট্রি</summary>
                         <div class="mt-4">
@@ -183,7 +174,6 @@
                         </div>
                     </details>
 
-                    <!-- Current Report Entries Preview Section (placed below both single and batch entry) -->
                     <div id="currentReportEntriesPreviewSection" class="theme-section-padding">
                         <h2 class="text-xl font-semibold mb-1 bengali theme-text-h2">বর্তমান রিপোর্টে যুক্ত এন্ট্রি</h2>
                         <div id="currentReportEntriesPreview" class="mt-3">
@@ -205,7 +195,6 @@
 
                 <section id="reportOutputContainer" class="mt-10 hidden">
                     <div class="relative p-4 rounded-md min-h-[200px] border theme-section-bg theme-border-color">
-                         <!-- Removed absolute positioning and moved into reportActionButtons div -->
                         <div id="reportOutput">
                             <p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>
                         </div>
@@ -214,7 +203,6 @@
                         <button id="downloadPdfBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-danger">পিডিএফ ডাউনলোড করুন</button>
                         <button id="exportCsvBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-primary">Excel ডাউনলোড করুন</button>
                         <button id="printReportBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-neutral">রিপোর্ট প্রিন্ট করুন</button>
-                        <!-- Added close button next to print report -->
                         <button id="closeReportViewBtn" class="font-semibold py-2 px-6 rounded-md shadow w-full sm:w-auto bengali theme-button-neutral">বন্ধ করুন</button>
                     </div>
                 </section>
@@ -244,6 +232,41 @@
                             </div>
                         </div>
                     </details>
+                    
+                    <details id="graphicalReportDetails" class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color">
+                        <summary class="text-xl font-semibold bengali theme-text-h2 cursor-pointer">গ্রাফিক্যাল পরিসংখ্যান দেখুন</summary>
+                        <div class="mt-4">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div class="md:col-span-1">
+                                    <label for="chartTypeSelect" class="block text-sm font-medium bengali theme-text-label">চার্টের প্রকার:</label>
+                                    <select id="chartTypeSelect" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
+                                        <option value="pie" selected>পাই চার্ট</option>
+                                        <option value="doughnut">ডোনাট চার্ট</option>
+                                        <option value="bar">বার/লাইন চার্ট</option>
+                                    </select>
+                                </div>
+                                <div id="pieChartDataTypeContainer" class="md:col-span-1">
+                                    <label for="pieChartDataType" class="block text-sm font-medium bengali theme-text-label">ডেটার প্রকার:</label>
+                                    <select id="pieChartDataType" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
+                                        <option value="savings" selected>সঞ্চয় বিতরণ</option>
+                                        <option value="loan">ঋণ বিতরণ</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-1">
+                                    <label for="chartYearSelect" class="block text-sm font-medium bengali theme-text-label">বছর:</label>
+                                    <select id="chartYearSelect" class="mt-1 block w-full rounded-md border shadow-sm p-2 bengali h-10 theme-input-bg theme-input-border theme-text-input">
+                                    </select>
+                                </div>
+                                <div class="md:col-span-1">
+                                    <button id="generateChartBtn" class="w-full font-semibold py-2 px-4 rounded-md shadow bengali theme-button-accent">গ্রাফ তৈরি করুন</button>
+                                </div>
+                            </div>
+                            <div class="mt-6 relative h-96 w-full md:w-3/4 mx-auto">
+                                <canvas id="financialChart"></canvas>
+                            </div>
+                        </div>
+                    </details>
+
                 </section>
 
                 <details id="appSettingsAndDataManagement" class="my-6 p-4 rounded-md theme-section-padding theme-section-bg-alt theme-border-color no-print hidden">
@@ -329,7 +352,6 @@
         </div>
     </div>
 
-    <!-- MOVED: Inline message display area -->
     <div id="inlineMessageDisplay" class="fixed top-0 left-0 w-full z-50 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300">
         <p class="text-sm py-1 px-3 rounded-full shadow-md bengali"></p>
     </div>

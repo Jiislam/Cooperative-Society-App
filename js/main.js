@@ -25,7 +25,8 @@ import {
     populateStatementMemberDropdownUI, renderMemberStatementUI,
     toggleReportActionButtonsUI,
     showConfirmModalUI,
-    showPromptModalUI
+    showPromptModalUI,
+    renderFinancialChartUI // <-- IMPORT for Charting
 } from './uiHandler.js';
 
 // Import services
@@ -39,7 +40,8 @@ import {
     deleteMonthlyReportAndRecalculate,
     updateMonthlyReportAndRecalculate,
     getMemberNetSavingsAsOfDate,
-    getMemberNetLoanAsOfDate
+    getMemberNetLoanAsOfDate,
+    generateMemberDistributionDataForYear // <-- NEW IMPORT for Pie/Donut Charts
 } from './reportService.js';
 import { addMember, deleteMember as deleteMemberFromService } from './memberService.js';
 
@@ -150,6 +152,11 @@ const reportOutputContainer = document.getElementById('reportOutputContainer');
 const annualReportYearSelect = document.getElementById('annualReportYearSelect');
 const generateAnnualReportBtn = document.getElementById('generateAnnualReportBtn');
 
+// --- CHART-RELATED DOM ELEMENTS ---
+const chartYearSelect = document.getElementById('chartYearSelect');
+const generateChartBtn = document.getElementById('generateChartBtn');
+
+
 const resetAllDataBtn = document.getElementById('resetAllDataBtn');
 const exportAllDataBtn = document.getElementById('exportAllDataBtn');
 
@@ -170,9 +177,26 @@ if (currentAppInstanceIdDisplay) {
     currentAppInstanceIdDisplay.textContent = appInstanceId;
 }
 
+/**
+ * Unlocks the month and year selectors for a new report without clearing entries.
+ * This is a "soft reset" of the date selection only.
+ */
+function unlockMonthYearForNewReport() {
+    if (reportMonthSelect) reportMonthSelect.disabled = false;
+    if (reportYearSelect) reportYearSelect.disabled = false;
+    if (discardMonthYearBtn) discardMonthYearBtn.classList.add('hidden'); // Hide the button itself
+    showInlineMessageUI("মাস ও বছর পরিবর্তন করার জন্য আনলক করা হয়েছে।", "info");
+}
+
+
 // --- Helper function to reset edit mode (and discard entries) ---
 // This function acts as the "return to homepage" or "clear report view"
-function resetEditMode() {
+/**
+ * Resets the UI from an editing state.
+ * @param {boolean} [keepReportVisible=false] - If true, resets the form but keeps the report output visible.
+ */
+// FIX 1: Added 'keepReportVisible' parameter to prevent hiding the report after an update.
+function resetEditMode(keepReportVisible = false) {
     editingReportId = null;
     editingReportOriginalTotals = null;
     if (generateReportBtn) {
@@ -208,15 +232,17 @@ function resetEditMode() {
         batchEntrySection.open = false; // Ensure it's collapsed
     }
 
-    // Ensure all sections are visible for the "homepage" view
-    setReportOutputHTML(`<p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>`);
-    toggleReportActionButtonsUI(false);
-    lastRenderedReportData = { type: null, data: null, titleInfo: {} };
+    // Conditionally hide the report output and reset the main UI layout
+    if (!keepReportVisible) {
+        setReportOutputHTML(`<p class="text-center bengali theme-text-muted">রিপোর্ট তৈরি হওয়ার পর এখানে প্রদর্শিত হবে।</p>`);
+        toggleReportActionButtonsUI(false);
+        lastRenderedReportData = { type: null, data: null, titleInfo: {} };
 
-    toggleInputSectionsVisibility(true);     // Show input forms
-    toggleAdditionalReportsVisibility(true); // Show additional reports section
-    toggleReportOutputVisibility(false);     // Hide the report display section
-    toggleAppSettingsVisibility(true);       // Show app settings section
+        toggleInputSectionsVisibility(true);     // Show input forms
+        toggleAdditionalReportsVisibility(true); // Show additional reports section
+        toggleReportOutputVisibility(false);     // Hide the report display section
+        toggleAppSettingsVisibility(true);       // Show app settings section
+    }
 }
 
 
@@ -241,6 +267,8 @@ async function handleFirebaseInitialization(config) {
         const currentYear = new Date().getFullYear();
         populateYearDropdownUI(reportYearSelect, currentYear - 10, currentYear + 5, currentYear); // For monthly report
         populateYearDropdownUI(annualReportYearSelect, currentYear - 10, currentYear + 5, currentYear); // For annual report
+        populateYearDropdownUI(chartYearSelect, currentYear - 10, currentYear + 5, currentYear); // For chart
+        
         updateCurrentDateDisplayUI();
         await loadInitialData();
     } else {
@@ -271,6 +299,7 @@ window.addEventListener('load', async () => {
             const currentYear = new Date().getFullYear();
             populateYearDropdownUI(reportYearSelect, currentYear - 10, currentYear + 5, currentYear);
             populateYearDropdownUI(annualReportYearSelect, currentYear - 10, currentYear + 5, currentYear);
+            populateYearDropdownUI(chartYearSelect, currentYear - 10, currentYear + 5, currentYear); // For chart
         }
     } else {
         console.log("No Firebase config found. Please enter manually.");
@@ -280,6 +309,7 @@ window.addEventListener('load', async () => {
         const currentYear = new Date().getFullYear();
         populateYearDropdownUI(reportYearSelect, currentYear - 10, currentYear + 5, currentYear);
         populateYearDropdownUI(annualReportYearSelect, currentYear - 10, currentYear + 5, currentYear);
+        populateYearDropdownUI(chartYearSelect, currentYear - 10, currentYear + 5, currentYear); // For chart
     }
 
     const savedTheme = localStorage.getItem('selectedTheme');
@@ -341,7 +371,7 @@ window.addEventListener('load', async () => {
         });
     }
 
-    // New: Listener for single member select dropdown to update selectedSingleMemberId and refresh member list
+    // Listener for single member select dropdown to update selectedSingleMemberId and refresh member list
     if (reportMemberNameSelect) {
         reportMemberNameSelect.addEventListener('change', () => {
             selectedSingleMemberId = reportMemberNameSelect.value;
@@ -351,7 +381,7 @@ window.addEventListener('load', async () => {
         });
     }
 
-    // New: Event listener for main app title to return to homepage
+    // Event listener for main app title to return to homepage
     if (mainAppTitle) {
         mainAppTitle.addEventListener('click', resetEditMode);
     }
@@ -452,7 +482,7 @@ async function loadInitialData() {
 
 // --- Event Listener Callbacks & Core Logic ---
 
-// New: Event listener for member selection checkbox (delegated to document)
+// Event listener for member selection checkbox (delegated to document)
 document.addEventListener('change', (event) => {
     if (event.target.matches('.member-select-checkbox')) {
         const checkbox = event.target;
@@ -727,7 +757,7 @@ async function handleAddMemberToReport() {
     }
 }
 
-// New: handleAddBatchToReport function - completely rewritten for batch update/add
+// Rewritten handleAddBatchToReport function for batch update/add
 async function handleAddBatchToReport() {
     if (selectedBatchMembers.size === 0) {
         showMessageUI("ব্যাচ এন্ট্রির জন্য কোনো সদস্য নির্বাচন করা হয়নি।", "error", 0);
@@ -872,7 +902,9 @@ async function handleAddBatchToReport() {
         feedbackMessage += reasons.join(';');
         feedbackMessage += `।`;
     }
-    showInlineMessageUI(feedbackMessage, membersAddedCount > 0 ? "success" : "warning", 0); // Show message until user closes
+    
+    // FIX 2: Changed auto-dismiss delay from 0 to 10000 (10 seconds) for the batch summary message.
+    showInlineMessageUI(feedbackMessage, membersAddedCount > 0 ? "success" : "warning", 10000); 
 
     // Clear batch inputs
     if (batchSavingsInput) batchSavingsInput.value = '';
@@ -1057,7 +1089,8 @@ async function handleGenerateReport() {
             renderSocietyMembersListUI(societyMembers, handleDeleteMember, handleViewMemberStatementFromList, currentSearchTerm, selectedBatchMembers, selectedSingleMemberId, currentReportEntries.map(entry => entry.memberId));
 
             if (editingReportId) {
-                resetEditMode();
+                // FIX 1: Called resetEditMode(true) to ensure the report remains visible after an update.
+                resetEditMode(true); 
             }
             // Scroll to report output after generation/update
             if (reportOutputContainer) {
@@ -1066,7 +1099,7 @@ async function handleGenerateReport() {
 
         } else {
             if (result.isDuplicate && !editingReportId) {
-                showInlineMessageUI(result.error.message, "warning", 0);
+                showMessageUI(result.error.message, "warning", 0);
             } else {
                 const actionVerb = editingReportId ? "আপডেট" : "তৈরি";
                 showInlineMessageUI(`রিপোর্ট ${actionVerb} করতে ব্যর্থ: ${result.error.message || 'অজানা ত্রুটি।'}`, "error", 0);
@@ -1357,6 +1390,82 @@ async function handleGenerateAnnualReport() {
     }
 }
 
+// --- REWRITTEN & CORRECTED FUNCTION TO HANDLE CHART GENERATION ---
+async function handleGenerateChart() {
+    const chartTypeSelect = document.getElementById('chartTypeSelect');
+    const pieChartDataTypeSelect = document.getElementById('pieChartDataType');
+    const chartYearSelect = document.getElementById('chartYearSelect');
+    const pieChartDataTypeContainer = document.getElementById('pieChartDataTypeContainer');
+
+    if (!chartTypeSelect || !chartYearSelect || !pieChartDataTypeSelect) {
+        showInlineMessageUI("চার্টের প্রয়োজনীয় উপাদান পাওয়া যায়নি।", "error", 0);
+        return;
+    }
+
+    const chartType = chartTypeSelect.value;
+    const yearNum = parseInt(chartYearSelect.value);
+
+    if (isNaN(yearNum)) {
+        showInlineMessageUI("অনুগ্রহ করে একটি সঠিক বছর নির্বাচন করুন।", "error", 0);
+        return;
+    }
+
+    // Toggle visibility of the pie data type selector based on chart type
+    if (chartType === 'pie' || chartType === 'doughnut') {
+        if(pieChartDataTypeContainer) pieChartDataTypeContainer.classList.remove('hidden');
+    } else {
+        if(pieChartDataTypeContainer) pieChartDataTypeContainer.classList.add('hidden');
+    }
+    
+    showInlineMessageUI(`গ্রাফিক্যাল রিপোর্ট (${yearNum} সাল) তৈরি করা হচ্ছে...`, "info", 2000);
+
+    // Find the details element and open it to make the chart visible
+    const graphDetailsElement = document.getElementById('financialChart')?.closest('details');
+    if(graphDetailsElement) {
+        graphDetailsElement.open = true;
+    }
+
+    try {
+        let result;
+        if (chartType === 'pie' || chartType === 'doughnut') {
+            // Use the new service function for pie/doughnut data
+            const pieDataType = pieChartDataTypeSelect.value;
+            result = await generateMemberDistributionDataForYear(appInstanceId, yearNum);
+            
+            if (result.success) {
+                if (!result.data || result.data.members.length === 0) {
+                    showInlineMessageUI(`${yearNum} সালের জন্য কোনও ডেটা পাওয়া যায়নি। গ্রাফ দেখানো সম্ভব নয়।`, "warning", 3000);
+                    renderFinancialChartUI(null); // Call with null to clear the chart
+                } else {
+                    showInlineMessageUI(`${yearNum} সালের গ্রাফ সফলভাবে তৈরি হয়েছে।`, "success", 3000);
+                    renderFinancialChartUI(chartType, yearNum, result.data, pieDataType);
+                }
+            } else {
+                 throw result.error || new Error("Pie chart data could not be generated.");
+            }
+
+        } else { // 'bar' chart type
+            result = await generateAnnualReportData(appInstanceId, yearNum, banglaMonthsForUI);
+            if (result.success) {
+                if (result.annualReportViewData.isEmpty) {
+                    showInlineMessageUI(`${yearNum} সালের জন্য কোনও ডেটা পাওয়া যায়নি। গ্রাফ দেখানো সম্ভব নয়।`, "warning", 3000);
+                    renderFinancialChartUI(null); // Call with null to clear the chart
+                } else {
+                    showInlineMessageUI(`${yearNum} সালের গ্রাফ সফলভাবে তৈরি হয়েছে।`, "success", 3000);
+                    renderFinancialChartUI('bar', yearNum, result.annualReportViewData);
+                }
+            } else {
+                throw result.error || new Error("Bar chart data could not be generated.");
+            }
+        }
+    } catch (error) {
+        console.error("Critical error in handleGenerateChart:", error);
+        showInlineMessageUI(`গ্রাফ তৈরি করার সময় একটি গুরুতর ত্রুটি ঘটেছে: ${error.message}`, "error", 0);
+        renderFinancialChartUI(null); // Clear chart on error
+    }
+}
+
+
 async function generateMemberStatementLogic(memberId, memberName) {
     showInlineMessageUI(`${memberName} এর বিবৃতি তৈরি করা হচ্ছে...`, "info", 0); // Persistent inline feedback
     try {
@@ -1493,11 +1602,36 @@ async function handleResetAllApplicationData() {
 if (addSocietyMemberBtn) addSocietyMemberBtn.addEventListener('click', handleAddSocietyMember);
 if (addMemberToReportBtn) addMemberToReportBtn.addEventListener('click', handleAddMemberToReport);
 if (clearCurrentReportEntriesBtn) clearCurrentReportEntriesBtn.addEventListener('click', handleClearCurrentReportEntries);
-if (cancelEditReportBtn) cancelEditReportBtn.addEventListener('click', resetEditMode); // New Listener
-if (discardMonthYearBtn) discardMonthYearBtn.addEventListener('click', resetEditMode); // Corrected ID usage and event listener
+if (cancelEditReportBtn) cancelEditReportBtn.addEventListener('click', resetEditMode);
+if (discardMonthYearBtn) discardMonthYearBtn.addEventListener('click', unlockMonthYearForNewReport);
 
 if (generateReportBtn) generateReportBtn.addEventListener('click', handleGenerateReport);
 if (generateAnnualReportBtn) generateAnnualReportBtn.addEventListener('click', handleGenerateAnnualReport);
+
+// --- LISTENER FOR CHART BUTTON ---
+if (generateChartBtn) {
+    generateChartBtn.addEventListener('click', handleGenerateChart);
+}
+
+// --- NEW EVENT LISTENER TO TOGGLE PIE CHART OPTIONS ---
+document.addEventListener('DOMContentLoaded', () => {
+    const chartTypeSelect = document.getElementById('chartTypeSelect');
+    const pieChartDataTypeContainer = document.getElementById('pieChartDataTypeContainer');
+
+    if (chartTypeSelect && pieChartDataTypeContainer) {
+        const togglePieOptions = () => {
+            if (chartTypeSelect.value === 'pie' || chartTypeSelect.value === 'doughnut') {
+                pieChartDataTypeContainer.classList.remove('hidden');
+            } else {
+                pieChartDataTypeContainer.classList.add('hidden');
+            }
+        };
+        togglePieOptions(); // Initial check
+        chartTypeSelect.addEventListener('change', togglePieOptions);
+    }
+});
+
+
 if (downloadPdfBtn) {
     downloadPdfBtn.addEventListener('click', () => {
         const reportOutputElement = document.getElementById('reportOutput');
@@ -1534,4 +1668,4 @@ if (closeReportViewBtn) {
 // Event listener for Batch Add to Report Button
 if (addBatchToReportBtn) {
     addBatchToReportBtn.addEventListener('click', handleAddBatchToReport);
-}
+};

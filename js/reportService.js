@@ -369,6 +369,81 @@ export async function generateAnnualReportData(appInstanceId, year, banglaMonths
     }
 }
 
+/**
+ * --- CORRECTED FUNCTION FOR PIE/DONUT CHARTS ---
+ * Generates member-based distribution data for a given year, suitable for pie/donut charts.
+ * This function was corrected to be more robust and to be properly used by the chart generation logic.
+ * It now returns totals for calculating percentages.
+ * @param {string} appInstanceId - The application instance ID.
+ * @param {number} year - The year for which to calculate distribution.
+ * @returns {Promise<Object>} An object containing the distribution data.
+ */
+export async function generateMemberDistributionDataForYear(appInstanceId, year) {
+    try {
+        const allMembers = await fetchSocietyMembersFS(appInstanceId);
+        const allReports = await fetchAllReportsMetadataFS(appInstanceId);
+        
+        const yearNumber = Number(year);
+        const reportsForYear = allReports.filter(r => r.year === yearNumber);
+
+        if (reportsForYear.length === 0) {
+            return { success: true, data: { members: [], totals: { savings: 0, loan: 0 } } };
+        }
+
+        const memberData = new Map();
+        // Initialize map with all current members to include members with zero transactions
+        allMembers.forEach(member => {
+            memberData.set(member.id, {
+                memberName: member.name,
+                totalSavings: 0,
+                totalLoan: 0
+            });
+        });
+
+        let yearlyTotalSavings = 0;
+        let yearlyTotalLoan = 0;
+
+        for (const report of reportsForYear) {
+            if (report.entries && Array.isArray(report.entries)) {
+                 for (const entry of report.entries) {
+                    // Only process entries for members that are still in the main members list
+                    if (memberData.has(entry.memberId)) {
+                        const member = memberData.get(entry.memberId);
+                        
+                        // For pie charts, we show the total contribution (deposits) and disbursed loans
+                        const savingsDeposit = Number(entry.savings) || 0;
+                        const loanDisbursed = Number(entry.loanDisbursed) || 0;
+
+                        member.totalSavings += savingsDeposit;
+                        member.totalLoan += loanDisbursed;
+                        
+                        yearlyTotalSavings += savingsDeposit;
+                        yearlyTotalLoan += loanDisbursed;
+                    }
+                }
+            }
+        }
+        
+        // Filter out members who had no transactions in that year to keep the chart clean
+        const distributionData = Array.from(memberData.values()).filter(m => m.totalSavings > 0 || m.totalLoan > 0);
+
+        return { 
+            success: true, 
+            data: {
+                members: distributionData,
+                totals: {
+                    savings: yearlyTotalSavings,
+                    loan: yearlyTotalLoan
+                }
+            }
+        };
+
+    } catch (error) {
+        console.error("Error generating member distribution data:", error);
+        return { success: false, error };
+    }
+}
+
 export async function generateMemberStatementData(appInstanceId, memberId, banglaMonthsOrder) {
     if (!memberId) {
         return { success: false, error: new Error("সদস্য আইডি প্রদান করা হয়নি।") };
